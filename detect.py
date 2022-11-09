@@ -43,6 +43,7 @@ from utils.torch_utils import select_device, time_sync
 from datetime import datetime
 import mysql.connector
 import pandas as pd
+import os.path
 
 #Creating variables
 now = datetime.now()
@@ -50,7 +51,7 @@ date_str = now.strftime("%Y%m%d") #tambah ini di dalam kurung untuk waktu %H:%M:
 time_str = now.strftime("%H%M%S")
 date_time_str = now.strftime("%Y%m%d%H%M%S")
 counting = 0
-helmet, goggles, jacket, gloves, footwear, photo = "0", "0", "0", "0", "0", "0"
+helmet, goggles, jacket, gloves, footwear, photo, no = "0", "0", "0", "0", "0", "0", "0"
 
 FILE = Path(__file__).resolve()
 ROOT = FILE.parents[0]  # YOLOv5 root directory
@@ -59,7 +60,7 @@ if str(ROOT) not in sys.path:
 ROOT = Path(os.path.relpath(ROOT, Path.cwd()))  # relative
 
 #Establishing database connection
-db = mysql.connector.connect(user='root', password='yourpassword', host='localhost', database='isddb')
+db = mysql.connector.connect(user='root', password='Arcana000-', host='localhost', database='isddb')
 
 if db.is_connected():
     print("Database is connected\n")
@@ -68,7 +69,7 @@ if db.is_connected():
 cursor = db.cursor()
 
 #Create table with name based on the date the file is created
-sql = ("""CREATE TABLE IF NOT EXISTS `""" +"s_"+ date_str + """` (photo LONGBLOB NOT NULL, time varchar(255), helmet varchar(255), goggles varchar(255), jacket varchar(255), gloves varchar(255), footwear varchar(255));""") #, strikeprice int, put_ask float
+sql = ("""CREATE TABLE IF NOT EXISTS `""" +"s_"+ date_str + """` (photo LONGBLOB NOT NULL, time varchar(255), helmet varchar(255), goggles varchar(255), jacket varchar(255), gloves varchar(255), footwear varchar(255));""")
 cursor.execute(sql)
 print("database is created\n")
 
@@ -102,7 +103,7 @@ def run(weights=ROOT / 'yolov5s.pt',  # model.pt path(s)
         half=False,  # use FP16 half-precision inference
         dnn=False,  # use OpenCV DNN for ONNX inference
         ):
-
+    download_csv()
     source = str(source)
     save_img = not nosave and not source.endswith('.txt')  # Save inference images
     is_file = Path(source).suffix[1:] in (IMG_FORMATS + VID_FORMATS)
@@ -179,7 +180,24 @@ def run(weights=ROOT / 'yolov5s.pt',  # model.pt path(s)
             annotator = Annotator(im0, line_width=line_thickness, example=str(names))
             
             #Saving detected image frame
-            FilePath = "data/images/" + date_str + "_" + str(counting) + ".jpg"
+            FilePath_o = "data/images/" + date_str + "_" + str(counting)
+            suffix = ".jpg"
+
+            #Create another file if file with the same name exists
+            if os.path.isfile(FilePath_o+suffix) == True:
+                number = 1
+                
+                FilePath1 = FilePath_o + "_({})".format(number)
+                FilePath = FilePath1 + suffix
+
+                if os.path.isfile(FilePath) == True:
+                    num = int(FilePath[-6])
+                    num += 1
+
+                    FilePath2 = FilePath_o + "_({})".format(str(num))
+                    FilePath = FilePath2 + suffix
+            else:
+                FilePath = FilePath_o + suffix
             cv2.imwrite(FilePath, im0)
 
             #Read detected image and store in photo variable
@@ -335,28 +353,27 @@ def main(opt):
     run(**vars(opt))
 
 def download_csv():
+    # Downloading from database to csv file
     table_name = "s_" + date_str
-    download_query = ("""select time, helmet, goggles, jacket, gloves, footwear from {}""").format(table_name)
+    download_query = ("""select helmet, goggles, jacket, gloves, footwear from {}""").format(table_name)
     cursor.execute(download_query)
 
     myallData = cursor.fetchall()
 
-    all_time = []
     all_helmet = []
     all_goggles = []
     all_jacket = []
     all_gloves = []
     all_footwear = []
 
-    for time, helmet, goggles, jacket, gloves, footwear in myallData:
-        all_time.append(time)
+    for helmet, goggles, jacket, gloves, footwear in myallData:
         all_helmet.append(helmet)
         all_goggles.append(goggles)
         all_jacket.append(jacket)
         all_gloves.append(gloves)
         all_footwear.append(footwear)
 
-    dic = {'Time' : all_time, 'Helmet' : all_helmet, 'Goggles': all_goggles, 'Jacket': all_jacket, 'Gloves':all_gloves, 'Footwear': all_footwear}
+    dic = {'Helmet' : all_helmet, 'Goggles': all_goggles, 'Jacket': all_jacket, 'Gloves':all_gloves, 'Footwear': all_footwear}
     df = pd.DataFrame(dic)
     dowload_path = 'data/images/{}.csv'.format(table_name)
     df_csv = df.to_csv(dowload_path)
