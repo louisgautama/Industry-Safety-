@@ -44,10 +44,6 @@ import torch.backends.cudnn as cudnn
 #lou
 from datetime import datetime
 import mysql.connector
-import matplotlib
-import matplotlib.pyplot as plt
-import time
-from PIL import Image, ImageDraw
 
 now = datetime.now()
 date_str = now.strftime("%Y%m%d") #tambah ini di dalam kurung untuk waktu %H:%M:%S")
@@ -197,6 +193,8 @@ def run(weights=ROOT / 'yolov5s.pt',  # model.pt path(s)
                 photo = File.read()
 
             
+
+            
             if len(det):
                 # Rescale boxes from img_size to im0 size
                 det[:, :4] = scale_coords(im.shape[2:], det[:, :4], im0.shape).round()
@@ -228,19 +226,19 @@ def run(weights=ROOT / 'yolov5s.pt',  # model.pt path(s)
                         
                         if names[c] == "Hello":
                             global helmet
-                            helmet = "df"
+                            helmet = (f'{conf:.2f}')
                         if names[c] == "No":
                             global goggles
-                            goggles = "p"
+                            goggles = (f'{conf:.2f}')
                         if names[c] == "ILoveYou":
                             global jacket 
-                            jacket = "jfkds"
+                            jacket = (f'{conf:.2f}')
                         if names[c] == "Please":
                             global gloves 
-                            gloves = "sdjfdk"
+                            gloves = (f'{conf:.2f}')
                         if names[c] == "Yes":
                             global footwear
-                            footwear = "djfj"
+                            footwear = (f'{conf:.2f}')
 
                         
                         #lou
@@ -255,10 +253,8 @@ def run(weights=ROOT / 'yolov5s.pt',  # model.pt path(s)
                         ## to make final output we have to run the 'commit()' method of the database object
                         db.commit()
 
-                        
-                        
                         print(cursor.rowcount, "record inserted")
-                        #lou
+
 
                         if save_crop:
                             save_one_box(xyxy, imc, file=save_dir / 'crops' / names[c] / f'{p.stem}.jpg', BGR=True)
