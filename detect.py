@@ -4,7 +4,7 @@
 #Logger untuk print di terminal
 #names untuk nama classes kyk "Hello", "Please" kalau di sign language
 #Process predictions untuk pengaturan detection
-#Stream results untuk pop up opencv
+#Stream results untuk pop up opencv 
 
 # YOLOv5 🚀 by Ultralytics, GPL-3.0 license
 """
