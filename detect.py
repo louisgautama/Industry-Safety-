@@ -375,8 +375,27 @@ def download_csv():
 
     dic = {'Helmet' : all_helmet, 'Goggles': all_goggles, 'Jacket': all_jacket, 'Gloves':all_gloves, 'Footwear': all_footwear}
     df = pd.DataFrame(dic)
-    dowload_path = 'data/images/{}.csv'.format(table_name)
-    df_csv = df.to_csv(dowload_path)
+    download_path_o = 'data/csv_files/{}'.format(table_name)
+    suffix2 = ".csv"
+
+    if os.path.isfile(download_path_o+suffix2) == True:
+        print("its there")
+        number = 1
+                
+        download_path1 = download_path_o + "_({})".format(number)
+        download_path = download_path1 + suffix2
+
+        if os.path.isfile(download_path) == True:
+            num = int(download_path[-6])
+            num += 1
+
+            download_path2 = download_path_o + "_({})".format(str(num))
+            download_path = download_path2 + suffix2
+    else:
+        download_path = download_path_o + suffix2
+        print("its not there")
+
+    df_csv = df.to_csv(download_path)
 
     print('downloaded')
 
