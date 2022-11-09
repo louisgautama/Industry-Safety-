@@ -41,37 +41,6 @@ import cv2
 import torch
 import torch.backends.cudnn as cudnn
 
-#lou
-from datetime import datetime
-import mysql.connector
-import matplotlib
-import matplotlib.pyplot as plt
-import time
-from PIL import Image, ImageDraw
-
-now = datetime.now()
-date_str = now.strftime("%Y%m%d") #tambah ini di dalam kurung untuk waktu %H:%M:%S")
-time_str = now.strftime("%H%M%S")
-date_time_str = now.strftime("%Y%m%d%H%M%S")
-counting = 0
-helmet, goggles, jacket, gloves, footwear, photo = "0", "0", "0", "0", "0", "0"
-
-#establishing the connection
-db = mysql.connector.connect(user='root', password='Arcana000-', host='localhost', database='isddb')
-
-if db.is_connected():
-    print("database connected")
-
-
-#Creating a cursor object using the cursor() method
-cursor = db.cursor()
-
-#create table with name based on the date the file is created
-sql = ("""CREATE TABLE IF NOT EXISTS `""" +"s_"+ date_str + """` (photo LONGBLOB NOT NULL, time varchar(255), helmet varchar(255), goggles varchar(255), jacket varchar(255), gloves varchar(255), footwear varchar(255));""") #, strikeprice int, put_ask float
-cursor.execute(sql)
-print("database created")
-#lou
-
 FILE = Path(__file__).resolve()
 ROOT = FILE.parents[0]  # YOLOv5 root directory
 if str(ROOT) not in sys.path:
@@ -114,7 +83,6 @@ def run(weights=ROOT / 'yolov5s.pt',  # model.pt path(s)
         half=False,  # use FP16 half-precision inference
         dnn=False,  # use OpenCV DNN for ONNX inference
         ):
-
     source = str(source)
     save_img = not nosave and not source.endswith('.txt')  # save inference images
     is_file = Path(source).suffix[1:] in (IMG_FORMATS + VID_FORMATS)
@@ -133,8 +101,9 @@ def run(weights=ROOT / 'yolov5s.pt',  # model.pt path(s)
     stride, names, pt = model.stride, model.names, model.pt
     imgsz = check_img_size(imgsz, s=stride)  # check image size
 
-
     # Dataloader
+
+
     if webcam:
         view_img = check_imshow()
         cudnn.benchmark = True  # set True to speed up constant image size inference
@@ -174,8 +143,6 @@ def run(weights=ROOT / 'yolov5s.pt',  # model.pt path(s)
         # Process predictions
         for i, det in enumerate(pred):  # per image
             seen += 1
-            global counting
-            counting += 1
             if webcam:  # batch_size >= 1
                 p, im0, frame = path[i], im0s[i].copy(), dataset.count
                 s += f'{i}: '
@@ -189,29 +156,18 @@ def run(weights=ROOT / 'yolov5s.pt',  # model.pt path(s)
             gn = torch.tensor(im0.shape)[[1, 0, 1, 0]]  # normalization gain whwh
             imc = im0.copy() if save_crop else im0  # for save_crop
             annotator = Annotator(im0, line_width=line_thickness, example=str(names))
-         
-            FilePath = "data/images/" + date_str + "_" + str(counting) + ".jpg"
-            cv2.imwrite(FilePath, im0)
 
-            with open (FilePath, "rb") as File:
-                photo = File.read()
-
-            
             if len(det):
                 # Rescale boxes from img_size to im0 size
                 det[:, :4] = scale_coords(im.shape[2:], det[:, :4], im0.shape).round()
 
-                    
                 # Print results
                 for c in det[:, -1].unique():
                     n = (det[:, -1] == c).sum()  # detections per class
                     s += f"{n} {names[int(c)]}{'s' * (n > 1)}, "  # add to string
 
-                
-
                 # Write results
                 for *xyxy, conf, cls in reversed(det):
-
                     if save_txt:  # Write to file
                         xywh = (xyxy2xywh(torch.tensor(xyxy).view(1, 4)) / gn).view(-1).tolist()  # normalized xywh
                         line = (cls, *xywh, conf) if save_conf else (cls, *xywh)  # label format
@@ -222,47 +178,8 @@ def run(weights=ROOT / 'yolov5s.pt',  # model.pt path(s)
                         c = int(cls)  # integer class
                         label = None if hide_labels else (names[c] if hide_conf else f'{names[c]} {conf:.2f}') #Label screen OpenCV
                         annotator.box_label(xyxy, label, color=colors(c, True))
-
-                        # FilePath_annotated = "data/images/" + date_str + "_" + str(counting) +"_annotated" + ".jpg"
-                        # cv2.imwrite(FilePath_annotated, im0)
-                        
-                        if names[c] == "Hello":
-                            global helmet
-                            helmet = "df"
-                        if names[c] == "No":
-                            global goggles
-                            goggles = "p"
-                        if names[c] == "ILoveYou":
-                            global jacket 
-                            jacket = "jfkds"
-                        if names[c] == "Please":
-                            global gloves 
-                            gloves = "sdjfdk"
-                        if names[c] == "Yes":
-                            global footwear
-                            footwear = "djfj"
-
-                        
-                        #lou
-                        ## defining the Query
-                        query = ("""INSERT INTO `"""+ "s_" + date_str + """`(photo, time, helmet, goggles, jacket, gloves, footwear) VALUES (%s, %s, %s, %s, %s, %s, %s);""")
-                        ## storing values in a variable
-                        values = (photo, date_str, helmet, goggles, jacket, gloves, footwear)
-                        
-                        ## executing the query with values
-                        cursor.execute(query, values)
-
-                        ## to make final output we have to run the 'commit()' method of the database object
-                        db.commit()
-
-                        
-                        
-                        print(cursor.rowcount, "record inserted")
-                        #lou
-
                         if save_crop:
                             save_one_box(xyxy, imc, file=save_dir / 'crops' / names[c] / f'{p.stem}.jpg', BGR=True)
-                        
 
             # Stream results
             im0 = annotator.result()
@@ -276,10 +193,11 @@ def run(weights=ROOT / 'yolov5s.pt',  # model.pt path(s)
                     cv2.rectangle(im0, (0,200), (640,300), (0,255,0), cv2.FILLED)
                     cv2.putText(im0, "Equipment not Complete", (150, 265), cv2.FONT_HERSHEY_COMPLEX_SMALL, 1, (0, 0, 255), 1)
                     cv2.waitKey(1000)    
-
-                cv2.imshow(str(p), im0)
-                cv2.waitKey(1)  # 1 millisecond
                 
+                cv2.imshow(str(p), im0)
+                
+                cv2.waitKey(1)  # 1 millisecond
+
             # Save results (image with detections)
             if save_img:
                 if dataset.mode == 'image':

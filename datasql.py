@@ -1,6 +1,8 @@
 from datetime import datetime
 import mysql.connector
 
+global lll
+
 now = datetime.now()
 date_time_str = now.strftime("%Y%m%d") #tambah ini di dalam kurung untuk waktu %H:%M:%S")
 
@@ -14,13 +16,13 @@ if db.is_connected():
 cursor = db.cursor()
 
 #create table with name based on the date the file is created
-sql = ("""CREATE TABLE IF NOT EXISTS `""" +"s_"+ date_time_str + """` (ala varchar(255), asdk varchar(255));""") #, strikeprice int, put_ask float
+sql = ("""CREATE TABLE IF NOT EXISTS `""" +"s_"+ date_time_str + """` (time varchar(255), asdk varchar(255));""") #, strikeprice int, put_ask float
 cursor.execute(sql)
 
 ## defining the Query
 query = ("""INSERT INTO `"""+ "s_" + date_time_str + """`(ala, asdk) VALUES (%s, %s);""")
 ## storing values in a variable
-values = ("Hafeez", "hafeez")
+values = (date_time_str, "hafeez")
 
 ## executing the query with values
 cursor.execute(query, values)
