@@ -1,11 +1,3 @@
-#view_img untuk show di opencv
-#label untuk label accuracy di screen opencv
-#conf untuk confidence level
-#Logger untuk print di terminal
-#names untuk nama classes kyk "Hello", "Please" kalau di sign language
-#Process predictions untuk pengaturan detection
-#Stream results untuk pop up opencv
-
 # YOLOv5 🚀 by Ultralytics, GPL-3.0 license
 """
 Run inference on images, videos, directories, streams, etc.
@@ -31,7 +23,7 @@ Usage - formats:
                                          yolov5s.tflite             # TensorFlow Lite
                                          yolov5s_edgetpu.tflite     # TensorFlow Edge TPU
 """
-
+#Import libraries
 import argparse
 import os
 import sys
@@ -41,40 +33,6 @@ import cv2
 import torch
 import torch.backends.cudnn as cudnn
 
-#lou
-from datetime import datetime
-import mysql.connector
-import pandas as pd
-
-now = datetime.now()
-date_str = now.strftime("%Y%m%d") #tambah ini di dalam kurung untuk waktu %H:%M:%S")
-time_str = now.strftime("%H%M%S")
-date_time_str = now.strftime("%Y%m%d%H%M%S")
-counting = 0
-helmet, goggles, jacket, gloves, footwear, photo = "0", "0", "0", "0", "0", "0"
-
-#establishing the connection
-db = mysql.connector.connect(user='root', password='Arcana000-', host='localhost', database='isddb')
-
-if db.is_connected():
-    print("database connected")
-
-
-#Creating a cursor object using the cursor() method
-cursor = db.cursor()
-
-#create table with name based on the date the file is created
-sql = ("""CREATE TABLE IF NOT EXISTS `""" +"s_"+ date_str + """` (photo LONGBLOB NOT NULL, time varchar(255), helmet varchar(255), goggles varchar(255), jacket varchar(255), gloves varchar(255), footwear varchar(255));""") #, strikeprice int, put_ask float
-cursor.execute(sql)
-print("database created")
-#lou
-
-FILE = Path(__file__).resolve()
-ROOT = FILE.parents[0]  # YOLOv5 root directory
-if str(ROOT) not in sys.path:
-    sys.path.append(str(ROOT))  # add ROOT to PATH
-ROOT = Path(os.path.relpath(ROOT, Path.cwd()))  # relative
-
 from models.common import DetectMultiBackend
 from utils.datasets import IMG_FORMATS, VID_FORMATS, LoadImages, LoadStreams
 from utils.general import (LOGGER, check_file, check_img_size, check_imshow, check_requirements, colorstr,
@@ -82,6 +40,37 @@ from utils.general import (LOGGER, check_file, check_img_size, check_imshow, che
 from utils.plots import Annotator, colors, save_one_box
 from utils.torch_utils import select_device, time_sync
 
+from datetime import datetime
+import mysql.connector
+import pandas as pd
+
+#Creating variables
+now = datetime.now()
+date_str = now.strftime("%Y%m%d") #tambah ini di dalam kurung untuk waktu %H:%M:%S")
+time_str = now.strftime("%H%M%S")
+date_time_str = now.strftime("%Y%m%d%H%M%S")
+counting = 0
+helmet, goggles, jacket, gloves, footwear, photo = "0", "0", "0", "0", "0", "0"
+
+FILE = Path(__file__).resolve()
+ROOT = FILE.parents[0]  # YOLOv5 root directory
+if str(ROOT) not in sys.path:
+    sys.path.append(str(ROOT))  # add ROOT to PATH
+ROOT = Path(os.path.relpath(ROOT, Path.cwd()))  # relative
+
+#Establishing database connection
+db = mysql.connector.connect(user='root', password='yourpassword', host='localhost', database='isddb')
+
+if db.is_connected():
+    print("Database is connected\n")
+
+#Creating a cursor object using the cursor() method
+cursor = db.cursor()
+
+#Create table with name based on the date the file is created
+sql = ("""CREATE TABLE IF NOT EXISTS `""" +"s_"+ date_str + """` (photo LONGBLOB NOT NULL, time varchar(255), helmet varchar(255), goggles varchar(255), jacket varchar(255), gloves varchar(255), footwear varchar(255));""") #, strikeprice int, put_ask float
+cursor.execute(sql)
+print("database is created\n")
 
 
 
@@ -113,9 +102,9 @@ def run(weights=ROOT / 'yolov5s.pt',  # model.pt path(s)
         half=False,  # use FP16 half-precision inference
         dnn=False,  # use OpenCV DNN for ONNX inference
         ):
-    download()
+
     source = str(source)
-    save_img = not nosave and not source.endswith('.txt')  # save inference images
+    save_img = not nosave and not source.endswith('.txt')  # Save inference images
     is_file = Path(source).suffix[1:] in (IMG_FORMATS + VID_FORMATS)
     is_url = source.lower().startswith(('rtsp://', 'rtmp://', 'http://', 'https://'))
     webcam = source.isnumeric() or source.endswith('.txt') or (is_url and not is_file)
@@ -188,27 +177,24 @@ def run(weights=ROOT / 'yolov5s.pt',  # model.pt path(s)
             gn = torch.tensor(im0.shape)[[1, 0, 1, 0]]  # normalization gain whwh
             imc = im0.copy() if save_crop else im0  # for save_crop
             annotator = Annotator(im0, line_width=line_thickness, example=str(names))
-         
+            
+            #Saving detected image frame
             FilePath = "data/images/" + date_str + "_" + str(counting) + ".jpg"
             cv2.imwrite(FilePath, im0)
 
+            #Read detected image and store in photo variable
             with open (FilePath, "rb") as File:
                 photo = File.read()
 
-            
 
-            
             if len(det):
                 # Rescale boxes from img_size to im0 size
                 det[:, :4] = scale_coords(im.shape[2:], det[:, :4], im0.shape).round()
-
                     
                 # Print results
                 for c in det[:, -1].unique():
                     n = (det[:, -1] == c).sum()  # detections per class
                     s += f"{n} {names[int(c)]}{'s' * (n > 1)}, "  # add to string
-
-                
 
                 # Write results
                 for *xyxy, conf, cls in reversed(det):
@@ -219,14 +205,16 @@ def run(weights=ROOT / 'yolov5s.pt',  # model.pt path(s)
                         with open(txt_path + '.txt', 'a') as f:
                             f.write(('%g ' * len(line)).rstrip() % line + '\n')
 
-                    if save_img or save_crop or view_img:  # Add bbox to image
+                    if save_img or save_crop or view_img:  # Add boundary box to image on screen
                         c = int(cls)  # integer class
-                        label = None if hide_labels else (names[c] if hide_conf else f'{names[c]} {conf:.2f}') #Label screen OpenCV
+                        label = None if hide_labels else (names[c] if hide_conf else f'{names[c]} {conf:.2f}') 
                         annotator.box_label(xyxy, label, color=colors(c, True))
 
-                        FilePath_annotated = "data/images/" + date_str + "_" + str(counting) +"_annotated" + ".jpg"
-                        cv2.imwrite(FilePath_annotated, im0)
+                        # Uncomment below if annotated image wants to be saved
+                        # FilePath_annotated = "data/images/" + date_str + "_" + str(counting) +"_annotated" + ".jpg"
+                        # cv2.imwrite(FilePath_annotated, im0)
                         
+                        # Inputting the detection confidence level into the variables
                         if names[c] == "Hello":
                             global helmet
                             helmet = (f'{conf:.2f}')
@@ -242,65 +230,62 @@ def run(weights=ROOT / 'yolov5s.pt',  # model.pt path(s)
                         if names[c] == "Yes":
                             global footwear
                             footwear = (f'{conf:.2f}')
-
-                        
-
-
-
+                            
                         if save_crop:
                             save_one_box(xyxy, imc, file=save_dir / 'crops' / names[c] / f'{p.stem}.jpg', BGR=True)
                         
 
-                        #lou
-                        ## defining the Query
+                # Defining the database Query
                 query = ("""INSERT INTO `"""+ "s_" + date_str + """`(photo, time, helmet, goggles, jacket, gloves, footwear) VALUES (%s, %s, %s, %s, %s, %s, %s);""")
-                        ## storing values in a variable
+                
+                # Storing values in a variable
                 values = (photo, date_str, helmet, goggles, jacket, gloves, footwear)
                         
-                        ## executing the query with values
+                # Executing the query with values
                 cursor.execute(query, values)
 
-                        ## to make final output we have to run the 'commit()' method of the database object
+                # Commit final output into database
                 db.commit()
 
+                #Print log if recorded into database
                 print(cursor.rowcount, "record inserted")
+
+                #Shows the status of the user (whether the user's equipment is complete)
+                if helmet and goggles and jacket and gloves and footwear != "0":
+                    cv2.rectangle(im0, (0,200), (640,300), (0,255,0), cv2.FILLED)
+                    cv2.putText(im0, "Equipment Complete", (150, 265), cv2.FONT_HERSHEY_COMPLEX_SMALL, 1, (0, 0, 255), 1)
+                    
+                else:
+                    cv2.rectangle(im0, (0,200), (640,300), (0,255,0), cv2.FILLED)
+                    cv2.putText(im0, "Equipment not Complete", (150, 265), cv2.FONT_HERSHEY_COMPLEX_SMALL, 1, (0, 0, 255), 1)
+
             # Stream results
             im0 = annotator.result()
             if view_img:
-                if cv2.waitKey(1) & 0xFF == ord('s'):
-                    cv2.rectangle(im0, (0,200), (640,300), (0,255,0), cv2.FILLED)
-                    cv2.putText(im0, "Equipment Complete", (150, 265), cv2.FONT_HERSHEY_COMPLEX_SMALL, 1, (0, 0, 255), 1)
-                    cv2.waitKey(1000)
-                    
-                elif  cv2.waitKey(1) & 0xFF == ord('d'):
-                    cv2.rectangle(im0, (0,200), (640,300), (0,255,0), cv2.FILLED)
-                    cv2.putText(im0, "Equipment not Complete", (150, 265), cv2.FONT_HERSHEY_COMPLEX_SMALL, 1, (0, 0, 255), 1)
-                    cv2.waitKey(1000)    
-
                 cv2.imshow(str(p), im0)
                 cv2.waitKey(1)  # 1 millisecond
                 
-            # Save results (image with detections)
-            if save_img:
-                if dataset.mode == 'image':
-                    cv2.imwrite(save_path, im0)
-                else:  # 'video' or 'stream'
-                    if vid_path[i] != save_path:  # new video
-                        vid_path[i] = save_path
-                        if isinstance(vid_writer[i], cv2.VideoWriter):
-                            vid_writer[i].release()  # release previous video writer
-                        if vid_cap:  # video
-                            fps = vid_cap.get(cv2.CAP_PROP_FPS)
-                            w = int(vid_cap.get(cv2.CAP_PROP_FRAME_WIDTH))
-                            h = int(vid_cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-                        else:  # stream
-                            fps, w, h = 30, im0.shape[1], im0.shape[0]
-                        save_path = str(Path(save_path).with_suffix('.mp4'))  # force *.mp4 suffix on results videos
-                        vid_writer[i] = cv2.VideoWriter(save_path, cv2.VideoWriter_fourcc(*'mp4v'), fps, (w, h))
-                    vid_writer[i].write(im0)
+            # Save results (image with detections). Uncomment to save results in runs/detect
+            # if save_img:
+            #     if dataset.mode == 'image':
+            #         cv2.imwrite(save_path, im0)
+            #     else:  # 'video' or 'stream'
+            #         if vid_path[i] != save_path:  # new video
+            #             vid_path[i] = save_path
+            #             if isinstance(vid_writer[i], cv2.VideoWriter):
+            #                 vid_writer[i].release()  # release previous video writer
+            #             if vid_cap:  # video
+            #                 fps = vid_cap.get(cv2.CAP_PROP_FPS)
+            #                 w = int(vid_cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+            #                 h = int(vid_cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+            #             else:  # stream
+            #                 fps, w, h = 30, im0.shape[1], im0.shape[0]
+            #             save_path = str(Path(save_path).with_suffix('.mp4'))  # force *.mp4 suffix on results videos
+            #             vid_writer[i] = cv2.VideoWriter(save_path, cv2.VideoWriter_fourcc(*'mp4v'), fps, (w, h))
+            #         vid_writer[i].write(im0)
 
         # Print time (inference-only)
-        LOGGER.info(f'{s}Done. ({t3 - t2:.3f}s)')
+        LOGGER.info(f'{s}Done. ({t3 - t2:.3f}s)\n')
 
     # Print results
     t = tuple(x / seen * 1E3 for x in dt)  # speeds per image
@@ -345,12 +330,11 @@ def parse_opt():
     print_args(FILE.stem, opt)
     return opt
 
-
 def main(opt):
     check_requirements(exclude=('tensorboard', 'thop'))
     run(**vars(opt))
 
-def download():
+def download_csv():
     table_name = "s_" + date_str
     download_query = ("""select time, helmet, goggles, jacket, gloves, footwear from {}""").format(table_name)
     cursor.execute(download_query)
@@ -378,7 +362,6 @@ def download():
     df_csv = df.to_csv(dowload_path)
 
     print('downloaded')
-
 
 if __name__ == "__main__":
     opt = parse_opt()
