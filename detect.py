@@ -44,6 +44,7 @@ import torch.backends.cudnn as cudnn
 #lou
 from datetime import datetime
 import mysql.connector
+import pandas as pd
 
 now = datetime.now()
 date_str = now.strftime("%Y%m%d") #tambah ini di dalam kurung untuk waktu %H:%M:%S")
@@ -82,6 +83,8 @@ from utils.plots import Annotator, colors, save_one_box
 from utils.torch_utils import select_device, time_sync
 
 
+
+
 @torch.no_grad()
 def run(weights=ROOT / 'yolov5s.pt',  # model.pt path(s)
         source=ROOT / '0',  # file/dir/URL/glob, 0 for webcam
@@ -110,7 +113,7 @@ def run(weights=ROOT / 'yolov5s.pt',  # model.pt path(s)
         half=False,  # use FP16 half-precision inference
         dnn=False,  # use OpenCV DNN for ONNX inference
         ):
-
+    download()
     source = str(source)
     save_img = not nosave and not source.endswith('.txt')  # save inference images
     is_file = Path(source).suffix[1:] in (IMG_FORMATS + VID_FORMATS)
@@ -221,8 +224,8 @@ def run(weights=ROOT / 'yolov5s.pt',  # model.pt path(s)
                         label = None if hide_labels else (names[c] if hide_conf else f'{names[c]} {conf:.2f}') #Label screen OpenCV
                         annotator.box_label(xyxy, label, color=colors(c, True))
 
-                        # FilePath_annotated = "data/images/" + date_str + "_" + str(counting) +"_annotated" + ".jpg"
-                        # cv2.imwrite(FilePath_annotated, im0)
+                        FilePath_annotated = "data/images/" + date_str + "_" + str(counting) +"_annotated" + ".jpg"
+                        cv2.imwrite(FilePath_annotated, im0)
                         
                         if names[c] == "Hello":
                             global helmet
@@ -241,25 +244,26 @@ def run(weights=ROOT / 'yolov5s.pt',  # model.pt path(s)
                             footwear = (f'{conf:.2f}')
 
                         
-                        #lou
-                        ## defining the Query
-                        query = ("""INSERT INTO `"""+ "s_" + date_str + """`(photo, time, helmet, goggles, jacket, gloves, footwear) VALUES (%s, %s, %s, %s, %s, %s, %s);""")
-                        ## storing values in a variable
-                        values = (photo, date_str, helmet, goggles, jacket, gloves, footwear)
-                        
-                        ## executing the query with values
-                        cursor.execute(query, values)
 
-                        ## to make final output we have to run the 'commit()' method of the database object
-                        db.commit()
-
-                        print(cursor.rowcount, "record inserted")
 
 
                         if save_crop:
                             save_one_box(xyxy, imc, file=save_dir / 'crops' / names[c] / f'{p.stem}.jpg', BGR=True)
                         
 
+                        #lou
+                        ## defining the Query
+                query = ("""INSERT INTO `"""+ "s_" + date_str + """`(photo, time, helmet, goggles, jacket, gloves, footwear) VALUES (%s, %s, %s, %s, %s, %s, %s);""")
+                        ## storing values in a variable
+                values = (photo, date_str, helmet, goggles, jacket, gloves, footwear)
+                        
+                        ## executing the query with values
+                cursor.execute(query, values)
+
+                        ## to make final output we have to run the 'commit()' method of the database object
+                db.commit()
+
+                print(cursor.rowcount, "record inserted")
             # Stream results
             im0 = annotator.result()
             if view_img:
@@ -345,6 +349,35 @@ def parse_opt():
 def main(opt):
     check_requirements(exclude=('tensorboard', 'thop'))
     run(**vars(opt))
+
+def download():
+    table_name = "s_" + date_str
+    download_query = ("""select time, helmet, goggles, jacket, gloves, footwear from {}""").format(table_name)
+    cursor.execute(download_query)
+
+    myallData = cursor.fetchall()
+
+    all_time = []
+    all_helmet = []
+    all_goggles = []
+    all_jacket = []
+    all_gloves = []
+    all_footwear = []
+
+    for time, helmet, goggles, jacket, gloves, footwear in myallData:
+        all_time.append(time)
+        all_helmet.append(helmet)
+        all_goggles.append(goggles)
+        all_jacket.append(jacket)
+        all_gloves.append(gloves)
+        all_footwear.append(footwear)
+
+    dic = {'Time' : all_time, 'Helmet' : all_helmet, 'Goggles': all_goggles, 'Jacket': all_jacket, 'Gloves':all_gloves, 'Footwear': all_footwear}
+    df = pd.DataFrame(dic)
+    dowload_path = 'data/images/{}.csv'.format(table_name)
+    df_csv = df.to_csv(dowload_path)
+
+    print('downloaded')
 
 
 if __name__ == "__main__":
