@@ -1,7 +1,6 @@
 # YOLOv5 🚀 by Ultralytics, GPL-3.0 license
 """
 Run inference on images, videos, directories, streams, etc.
-
 Usage - sources:
     $ python path/to/detect.py --weights yolov5s.pt --source 0              # webcam
                                                              img.jpg        # image
@@ -10,7 +9,6 @@ Usage - sources:
                                                              path/*.jpg     # glob
                                                              'https://youtu.be/Zgi9g1ksQHc'  # YouTube
                                                              'rtsp://example.com/media.mp4'  # RTSP, RTMP, HTTP stream
-
 Usage - formats:
     $ python path/to/detect.py --weights yolov5s.pt                 # PyTorch
                                          yolov5s.torchscript        # TorchScript
@@ -317,7 +315,7 @@ def run(weights=ROOT / 'yolov5s.pt',  # model.pt path(s)
                 #             vid_writer[i] = cv2.VideoWriter(save_path, cv2.VideoWriter_fourcc(*'mp4v'), fps, (w, h))
                 #         vid_writer[i].write(im0)
 
-            # Print time (inference-only)
+            # Stream normal webcam
             else:
                 cv2.imshow(str(p), im0)
                 cv2.waitKey(1)  # 1 millisecond
@@ -375,6 +373,7 @@ def main(opt):
 
 # Downloading from database to csv file
 def download_csv():
+    print("Downloading csv file...")
     table_name = "s_" + date_str
     suffix2 = ".csv"
     check_query = "show tables"
@@ -427,10 +426,11 @@ def download_csv():
 
         df_csv = df.to_csv(download_path)
 
-        print('downloaded')
+        print("Downloaded csv file into data/csv_files folder")
 
 #Download images of detection
 def download_images():
+    print("Downloading images from database...")
     table_name = "s_" + date_str
     suffix3 = ".jpg"
     check_query = "show tables"
@@ -475,7 +475,7 @@ def download_images():
             with open(StoreFilePath, "wb") as Fil:
                 Fil.write(myd1)
 
-        print("downloaded")
+        print("Downloaded images from database into data\image_files_from_database folder")
 
 if __name__ == "__main__":
     opt = parse_opt()
