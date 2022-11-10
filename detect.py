@@ -373,7 +373,7 @@ def main(opt):
 
 # Downloading from database to csv file
 def download_csv():
-    print("Downloading csv file...")
+    print("Downloading csv file...\n")
     table_name = "s_" + date_str
     suffix2 = ".csv"
     check_query = "show tables"
@@ -384,7 +384,7 @@ def download_csv():
         table_list.append(tab)
         
     if table_name not in table_list:
-        print('Table not found!')
+        print('Table not found!\n')
     else: 
         download_query = ("""select helmet, goggles, jacket, gloves, footwear from {}""").format(table_name)
         cursor.execute(download_query)
@@ -426,11 +426,11 @@ def download_csv():
 
         df_csv = df.to_csv(download_path)
 
-        print("Downloaded csv file into data/csv_files folder")
+        print("Downloaded csv file into data/csv_files folder\n")
 
 #Download images of detection
 def download_images():
-    print("Downloading images from database...")
+    print("Downloading images from database...\n")
     table_name = "s_" + date_str
     suffix3 = ".jpg"
     check_query = "show tables"
@@ -441,7 +441,7 @@ def download_images():
         table_list.append(tab)
         
     if table_name not in table_list:
-        print('Table not found!')
+        print('Table not found!\n')
     else: 
         download_image_query = ("""SELECT photo FROM {}""").format(table_name)
         cursor.execute(download_image_query)
@@ -451,7 +451,6 @@ def download_images():
 
         for myR in myRes:
             myd1 = myR[0]
-            # print(myd1)
             global coun
             coun +=1
             StoreFilePath_o = "data/image_files_from_database/" + table_name + "_" + str(coun)
@@ -475,7 +474,7 @@ def download_images():
             with open(StoreFilePath, "wb") as Fil:
                 Fil.write(myd1)
 
-        print("Downloaded images from database into data\image_files_from_database folder")
+        print("Downloaded images from database into data\image_files_from_database folder\n")
 
 if __name__ == "__main__":
     opt = parse_opt()
