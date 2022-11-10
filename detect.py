@@ -65,7 +65,9 @@ ROOT = Path(os.path.relpath(ROOT, Path.cwd()))  # relative
 
 mydb = mysql.connector.connect(user='root', password='Arcana000-', host='localhost')
 mycursor = mydb.cursor()
-mycursor.execute("CREATE DATABASE IF NOT EXISTS isddbb")
+
+#Creating database if not exist
+mycursor.execute("CREATE DATABASE IF NOT EXISTS isddb")
 
 #Establishing database connection
 db = mysql.connector.connect(user='root', password='Arcana000-', host='localhost', database='isddb')
@@ -75,11 +77,6 @@ if db.is_connected():
 
 #Creating a cursor object using the cursor() method
 cursor = db.cursor()
-
-#Create table with name based on the date the file is created
-sql = ("""CREATE TABLE IF NOT EXISTS `""" +"s_"+ date_str + """` (photo LONGBLOB NOT NULL, time varchar(255), helmet varchar(255), goggles varchar(255), jacket varchar(255), gloves varchar(255), footwear varchar(255));""")
-cursor.execute(sql)
-print("database is created\n")
 
 
 
@@ -110,9 +107,13 @@ def run(weights=ROOT / 'yolov5s.pt',  # model.pt path(s)
         hide_conf=False,  # hide confidences
         half=False,  # use FP16 half-precision inference
         dnn=False,  # use OpenCV DNN for ONNX inference
-        ):
-    download_csv()
-    download_images()
+        ):  
+
+    #Create table with name based on the date the file is created
+    sql = ("""CREATE TABLE IF NOT EXISTS `""" +"s_"+ date_str + """` (photo LONGBLOB NOT NULL, time varchar(255), helmet varchar(255), goggles varchar(255), jacket varchar(255), gloves varchar(255), footwear varchar(255));""")
+    cursor.execute(sql)
+    print("Database Table is created\n")
+
     source = str(source)
     save_img = not nosave and not source.endswith('.txt')  # Save inference images
     is_file = Path(source).suffix[1:] in (IMG_FORMATS + VID_FORMATS)
@@ -172,8 +173,6 @@ def run(weights=ROOT / 'yolov5s.pt',  # model.pt path(s)
         # Process predictions
         for i, det in enumerate(pred):  # per image
             seen += 1
-            global counting
-            counting += 1
             if webcam:  # batch_size >= 1
                 p, im0, frame = path[i], im0s[i].copy(), dataset.count
                 s += f'{i}: '
@@ -193,130 +192,136 @@ def run(weights=ROOT / 'yolov5s.pt',  # model.pt path(s)
             img_gray = cv2.cvtColor(im0,cv2.COLOR_BGR2GRAY)
             faces = faceCascade.detectMultiScale(img_gray, 1.1, 4)
 
-            FilePath_o = "data/images/" + date_str + "_" + str(counting)
-            suffix = ".jpg"
+            if len(faces) != 0:
+                global counting
+                counting += 1
+                FilePath_o = "data/images/" + date_str + "_" + str(counting)
+                suffix = ".jpg"
 
-            # Create another file if file with the same name exists
-            if os.path.isfile(FilePath_o+suffix) == True:
-                number = 1
+                # Create another file if file with the same name exists
+                if os.path.isfile(FilePath_o+suffix) == True:
+                    number = 1
                 
-                FilePath1 = FilePath_o + "_({})".format(number)
-                FilePath = FilePath1 + suffix
+                    FilePath1 = FilePath_o + "_({})".format(number)
+                    FilePath = FilePath1 + suffix
 
-                if os.path.isfile(FilePath) == True:
-                    num = int(FilePath[-6])
-                    num += 1
+                    while os.path.isfile(FilePath) == True:
+                        num = int(FilePath[-6])
+                        num += 1
 
-                    FilePath2 = FilePath_o + "_({})".format(str(num))
-                    FilePath = FilePath2 + suffix
-            else:
-                FilePath = FilePath_o + suffix
-            cv2.imwrite(FilePath, im0)
-
-            #Read detected image and store in photo variable
-            with open (FilePath, "rb") as File:
-                photo = File.read()
-
-
-            if len(det):
-                # Rescale boxes from img_size to im0 size
-                det[:, :4] = scale_coords(im.shape[2:], det[:, :4], im0.shape).round()
-                    
-                # Print results
-                for c in det[:, -1].unique():
-                    n = (det[:, -1] == c).sum()  # detections per class
-                    s += f"{n} {names[int(c)]}{'s' * (n > 1)}, "  # add to string
-
-                # Write results
-                for *xyxy, conf, cls in reversed(det):
-
-                    if save_txt:  # Write to file
-                        xywh = (xyxy2xywh(torch.tensor(xyxy).view(1, 4)) / gn).view(-1).tolist()  # normalized xywh
-                        line = (cls, *xywh, conf) if save_conf else (cls, *xywh)  # label format
-                        with open(txt_path + '.txt', 'a') as f:
-                            f.write(('%g ' * len(line)).rstrip() % line + '\n')
-
-                    if save_img or save_crop or view_img:  # Add boundary box to image on screen
-                        c = int(cls)  # integer class
-                        label = None if hide_labels else (names[c] if hide_conf else f'{names[c]} {conf:.2f}') 
-                        annotator.box_label(xyxy, label, color=colors(c, True))
-
-                        # Uncomment below if annotated image wants to be saved
-                        # FilePath_annotated = "data/images/" + date_str + "_" + str(counting) +"_annotated" + ".jpg"
-                        # cv2.imwrite(FilePath_annotated, im0)
-                        
-                        # Inputting the detection confidence level into the variables
-                        if names[c] == "Hello":
-                            global helmet
-                            helmet = (f'{conf:.2f}')
-                        if names[c] == "No":
-                            global goggles
-                            goggles = (f'{conf:.2f}')
-                        if names[c] == "ILoveYou":
-                            global jacket 
-                            jacket = (f'{conf:.2f}')
-                        if names[c] == "Please":
-                            global gloves 
-                            gloves = (f'{conf:.2f}')
-                        if names[c] == "Yes":
-                            global footwear
-                            footwear = (f'{conf:.2f}')
-                            
-                        if save_crop:
-                            save_one_box(xyxy, imc, file=save_dir / 'crops' / names[c] / f'{p.stem}.jpg', BGR=True)
-                        
-
-                # Defining the database Query
-                query = ("""INSERT INTO `"""+ "s_" + date_str + """`(photo, time, helmet, goggles, jacket, gloves, footwear) VALUES (%s, %s, %s, %s, %s, %s, %s);""")
-                
-                # Storing values in a variable
-                values = (photo, date_str, helmet, goggles, jacket, gloves, footwear)
-                        
-                # Executing the query with values
-                cursor.execute(query, values)
-
-                # Commit final output into database
-                db.commit()
-
-                #Print log if recorded into database
-                print(cursor.rowcount, "record inserted")
-
-                #Shows the status of the user (whether the user's equipment is complete)
-                if helmet and goggles and jacket and gloves and footwear != "0":
-                    cv2.rectangle(im0, (0,200), (640,300), (0,255,0), cv2.FILLED)
-                    cv2.putText(im0, "Equipment Complete", (150, 265), cv2.FONT_HERSHEY_COMPLEX_SMALL, 1, (0, 0, 255), 1)
-                    
+                        FilePath2 = FilePath_o + "_({})".format(str(num))
+                        FilePath = FilePath2 + suffix
                 else:
-                    cv2.rectangle(im0, (0,200), (640,300), (0,255,0), cv2.FILLED)
-                    cv2.putText(im0, "Equipment not Complete", (150, 265), cv2.FONT_HERSHEY_COMPLEX_SMALL, 1, (0, 0, 255), 1)
+                    FilePath = FilePath_o + suffix
+                cv2.imwrite(FilePath, im0)
 
-            # Stream results
-            im0 = annotator.result()
-            if view_img:
+                #Read detected image and store in photo variable
+                with open (FilePath, "rb") as File:
+                    photo = File.read()
+
+
+                if len(det):
+                    # Rescale boxes from img_size to im0 size
+                    det[:, :4] = scale_coords(im.shape[2:], det[:, :4], im0.shape).round()
+
+                    # Print results
+                    for c in det[:, -1].unique():
+                        n = (det[:, -1] == c).sum()  # detections per class
+                        s += f"{n} {names[int(c)]}{'s' * (n > 1)}, "  # add to string
+
+                    # Write results
+                    for *xyxy, conf, cls in reversed(det):
+
+                        if save_txt:  # Write to file
+                            xywh = (xyxy2xywh(torch.tensor(xyxy).view(1, 4)) / gn).view(-1).tolist()  # normalized xywh
+                            line = (cls, *xywh, conf) if save_conf else (cls, *xywh)  # label format
+                            with open(txt_path + '.txt', 'a') as f:
+                                f.write(('%g ' * len(line)).rstrip() % line + '\n')
+
+                        if save_img or save_crop or view_img:  # Add boundary box to image on screen
+                            c = int(cls)  # integer class
+                            label = None if hide_labels else (names[c] if hide_conf else f'{names[c]} {conf:.2f}') 
+                            annotator.box_label(xyxy, label, color=colors(c, True))
+
+                            # Uncomment below if annotated image wants to be saved
+                            # FilePath_annotated = "data/images/" + date_str + "_" + str(counting) +"_annotated" + ".jpg"
+                            # cv2.imwrite(FilePath_annotated, im0)
+
+                            # Inputting the detection confidence level into the variables
+                            if names[c] == "Hello":
+                                global helmet
+                                helmet = (f'{conf:.2f}')
+                            if names[c] == "No":
+                                global goggles
+                                goggles = (f'{conf:.2f}')
+                            if names[c] == "ILoveYou":
+                                global jacket 
+                                jacket = (f'{conf:.2f}')
+                            if names[c] == "Please":
+                                global gloves 
+                                gloves = (f'{conf:.2f}')
+                            if names[c] == "Yes":
+                                global footwear
+                                footwear = (f'{conf:.2f}')
+
+                            if save_crop:
+                                save_one_box(xyxy, imc, file=save_dir / 'crops' / names[c] / f'{p.stem}.jpg', BGR=True)
+
+
+                    # Defining the database Query
+                    query = ("""INSERT INTO `"""+ "s_" + date_str + """`(photo, time, helmet, goggles, jacket, gloves, footwear) VALUES (%s, %s, %s, %s, %s, %s, %s);""")
+
+                    # Storing values in a variable
+                    values = (photo, date_str, helmet, goggles, jacket, gloves, footwear)
+
+                    # Executing the query with values
+                    cursor.execute(query, values)
+
+                    # Commit final output into database
+                    db.commit()
+
+                    #Print log if recorded into database
+                    print(cursor.rowcount, "record inserted")
+
+                    #Shows the status of the user (whether the user's equipment is complete)
+                    if helmet and goggles and jacket and gloves and footwear != "0":
+                        cv2.rectangle(im0, (0,200), (640,300), (0,255,0), cv2.FILLED)
+                        cv2.putText(im0, "Equipment Complete", (150, 265), cv2.FONT_HERSHEY_COMPLEX_SMALL, 1, (0, 0, 255), 1)
+
+                    else:
+                        cv2.rectangle(im0, (0,200), (640,300), (0,255,0), cv2.FILLED)
+                        cv2.putText(im0, "Equipment not Complete", (150, 265), cv2.FONT_HERSHEY_COMPLEX_SMALL, 1, (0, 0, 255), 1)
+
+                # Stream results
+                im0 = annotator.result()
+                if view_img:
+                    cv2.imshow(str(p), im0)
+                    cv2.waitKey(1)  # 1 millisecond
+
+                # Save results (image with detections). Uncomment to save results in runs/detect
+                # if save_img:
+                #     if dataset.mode == 'image':
+                #         cv2.imwrite(save_path, im0)
+                #     else:  # 'video' or 'stream'
+                #         if vid_path[i] != save_path:  # new video
+                #             vid_path[i] = save_path
+                #             if isinstance(vid_writer[i], cv2.VideoWriter):
+                #                 vid_writer[i].release()  # release previous video writer
+                #             if vid_cap:  # video
+                #                 fps = vid_cap.get(cv2.CAP_PROP_FPS)
+                #                 w = int(vid_cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+                #                 h = int(vid_cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+                #             else:  # stream
+                #                 fps, w, h = 30, im0.shape[1], im0.shape[0]
+                #             save_path = str(Path(save_path).with_suffix('.mp4'))  # force *.mp4 suffix on results videos
+                #             vid_writer[i] = cv2.VideoWriter(save_path, cv2.VideoWriter_fourcc(*'mp4v'), fps, (w, h))
+                #         vid_writer[i].write(im0)
+
+            # Print time (inference-only)
+            else:
                 cv2.imshow(str(p), im0)
                 cv2.waitKey(1)  # 1 millisecond
-                
-            # Save results (image with detections). Uncomment to save results in runs/detect
-            # if save_img:
-            #     if dataset.mode == 'image':
-            #         cv2.imwrite(save_path, im0)
-            #     else:  # 'video' or 'stream'
-            #         if vid_path[i] != save_path:  # new video
-            #             vid_path[i] = save_path
-            #             if isinstance(vid_writer[i], cv2.VideoWriter):
-            #                 vid_writer[i].release()  # release previous video writer
-            #             if vid_cap:  # video
-            #                 fps = vid_cap.get(cv2.CAP_PROP_FPS)
-            #                 w = int(vid_cap.get(cv2.CAP_PROP_FRAME_WIDTH))
-            #                 h = int(vid_cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-            #             else:  # stream
-            #                 fps, w, h = 30, im0.shape[1], im0.shape[0]
-            #             save_path = str(Path(save_path).with_suffix('.mp4'))  # force *.mp4 suffix on results videos
-            #             vid_writer[i] = cv2.VideoWriter(save_path, cv2.VideoWriter_fourcc(*'mp4v'), fps, (w, h))
-            #         vid_writer[i].write(im0)
-
-        # Print time (inference-only)
-        LOGGER.info(f'{s}Done. ({t3 - t2:.3f}s)\n')
+            LOGGER.info(f'{s}Done. ({t3 - t2:.3f}s)\n')
 
     # Print results
     t = tuple(x / seen * 1E3 for x in dt)  # speeds per image
@@ -326,6 +331,9 @@ def run(weights=ROOT / 'yolov5s.pt',  # model.pt path(s)
         LOGGER.info(f"Results saved to {colorstr('bold', save_dir)}{s}")
     if update:
         strip_optimizer(weights)  # update model (to fix SourceChangeWarning)
+
+
+            
 
 
 def parse_opt():
@@ -365,91 +373,109 @@ def main(opt):
     check_requirements(exclude=('tensorboard', 'thop'))
     run(**vars(opt))
 
+# Downloading from database to csv file
 def download_csv():
-    # Downloading from database to csv file
-
     table_name = "s_" + date_str
-    download_query = ("""select helmet, goggles, jacket, gloves, footwear from {}""").format(table_name)
-    cursor.execute(download_query)
-
-    myallData = cursor.fetchall()
-
-    all_helmet = []
-    all_goggles = []
-    all_jacket = []
-    all_gloves = []
-    all_footwear = []
-
-    for helmet, goggles, jacket, gloves, footwear in myallData:
-        all_helmet.append(helmet)
-        all_goggles.append(goggles)
-        all_jacket.append(jacket)
-        all_gloves.append(gloves)
-        all_footwear.append(footwear)
-
-    dic = {'Helmet' : all_helmet, 'Goggles': all_goggles, 'Jacket': all_jacket, 'Gloves':all_gloves, 'Footwear': all_footwear}
-    df = pd.DataFrame(dic)
-    download_path_o = 'data/csv_files/{}'.format(table_name)
     suffix2 = ".csv"
+    check_query = "show tables"
+    cursor.execute(check_query)
+    table_list = []
+    for table in cursor:
+        tab = table[0]
+        table_list.append(tab)
+        
+    if table_name not in table_list:
+        print('Table not found!')
+    else: 
+        download_query = ("""select helmet, goggles, jacket, gloves, footwear from {}""").format(table_name)
+        cursor.execute(download_query)
 
-    if os.path.isfile(download_path_o+suffix2) == True:
-        number = 1
-                
-        download_path1 = download_path_o + "_({})".format(number)
-        download_path = download_path1 + suffix2
+        myallData = cursor.fetchall()
 
-        if os.path.isfile(download_path) == True:
-            num = int(download_path[-6])
-            num += 1
+        all_helmet = []
+        all_goggles = []
+        all_jacket = []
+        all_gloves = []
+        all_footwear = []
 
-            download_path2 = download_path_o + "_({})".format(str(num))
-            download_path = download_path2 + suffix2
-    else:
-        download_path = download_path_o + suffix2
+        for helmet, goggles, jacket, gloves, footwear in myallData:
+            all_helmet.append(helmet)
+            all_goggles.append(goggles)
+            all_jacket.append(jacket)
+            all_gloves.append(gloves)
+            all_footwear.append(footwear)
 
-    df_csv = df.to_csv(download_path)
+        dic = {'Helmet' : all_helmet, 'Goggles': all_goggles, 'Jacket': all_jacket, 'Gloves':all_gloves, 'Footwear': all_footwear}
+        df = pd.DataFrame(dic)
+        download_path_o = 'data/csv_files/{}'.format(table_name)
+        suffix2 = ".csv"
 
-    print('downloaded')
+        if os.path.isfile(download_path_o+suffix2) == True:
+            number = 1
+
+            download_path1 = download_path_o + "_({})".format(number)
+            download_path = download_path1 + suffix2
+
+            while os.path.isfile(download_path) == True:
+                num = int(download_path[-6])
+                num += 1
+
+                download_path2 = download_path_o + "_({})".format(str(num))
+                download_path = download_path2 + suffix2
+        else:
+            download_path = download_path_o + suffix2
+
+        df_csv = df.to_csv(download_path)
+
+        print('downloaded')
 
 #Download images of detection
 def download_images():
-    
     table_name = "s_" + date_str
     suffix3 = ".jpg"
-
-    download_image_query = ("""SELECT photo FROM {}""").format(table_name)
-    cursor.execute(download_image_query)
-
-    myResult = cursor.fetchall()
-    myRes = myResult[:]
-
-    for myR in myRes:
-        myd1 = myR[0]
-        # print(myd1)
-        global coun
-        coun +=1
-        StoreFilePath_o = "data/image_files_from_database/" + table_name + "_" + str(coun)
-        StoreFilePath = StoreFilePath_o + suffix3
-
-        if os.path.isfile(StoreFilePath_o+suffix3) == True:
-            number = 1
-                
-            StoreFilePath1 = StoreFilePath_o + "_({})".format(number)
-            StoreFilePath = StoreFilePath1 + suffix3
-
-            if os.path.isfile(StoreFilePath) == True:
-                num = int(StoreFilePath[-6])
-                num += 1
-
-                StoreFilePath2 = StoreFilePath_o + "_({})".format(str(num))
-                StoreFilePath = StoreFilePath2 + suffix3
-        else:
-            StoreFilePath = StoreFilePath_o + suffix3
+    check_query = "show tables"
+    cursor.execute(check_query)
+    table_list = []
+    for table in cursor:
+        tab = table[0]
+        table_list.append(tab)
         
-        with open(StoreFilePath, "wb") as Fil:
-            Fil.write(myd1)
+    if table_name not in table_list:
+        print('Table not found!')
+    else: 
+        download_image_query = ("""SELECT photo FROM {}""").format(table_name)
+        cursor.execute(download_image_query)
 
-    print("downloaded")
+        myResult = cursor.fetchall()
+        myRes = myResult[:]
+
+        for myR in myRes:
+            myd1 = myR[0]
+            # print(myd1)
+            global coun
+            coun +=1
+            StoreFilePath_o = "data/image_files_from_database/" + table_name + "_" + str(coun)
+            StoreFilePath = StoreFilePath_o + suffix3
+
+            if os.path.isfile(StoreFilePath_o+suffix3) == True:
+                number = 1
+
+                StoreFilePath1 = StoreFilePath_o + "_({})".format(number)
+                StoreFilePath = StoreFilePath1 + suffix3
+
+                while os.path.isfile(StoreFilePath) == True:
+                    num = int(StoreFilePath[-6])
+                    num += 1
+
+                    StoreFilePath2 = StoreFilePath_o + "_({})".format(str(num))
+                    StoreFilePath = StoreFilePath2 + suffix3
+            else:
+                StoreFilePath = StoreFilePath_o + suffix3
+
+            with open(StoreFilePath, "wb") as Fil:
+                Fil.write(myd1)
+
+        print("downloaded")
 
 if __name__ == "__main__":
     opt = parse_opt()
