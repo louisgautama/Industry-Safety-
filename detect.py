@@ -43,21 +43,29 @@ from utils.torch_utils import select_device, time_sync
 from datetime import datetime
 import mysql.connector
 import pandas as pd
+import numpy as np
 import os.path
 
 #Creating variables
+haarcascade = "models/haarcascade_frontalface_default.xml"
 now = datetime.now()
 date_str = now.strftime("%Y%m%d") #tambah ini di dalam kurung untuk waktu %H:%M:%S")
 time_str = now.strftime("%H%M%S")
 date_time_str = now.strftime("%Y%m%d%H%M%S")
 counting = 0
-helmet, goggles, jacket, gloves, footwear, photo, no = "0", "0", "0", "0", "0", "0", "0"
+coun = 0
+helmet, goggles, jacket, gloves, footwear, photo, no= "0", "0", "0", "0", "0", "0", "0"
+
 
 FILE = Path(__file__).resolve()
 ROOT = FILE.parents[0]  # YOLOv5 root directory
 if str(ROOT) not in sys.path:
     sys.path.append(str(ROOT))  # add ROOT to PATH
 ROOT = Path(os.path.relpath(ROOT, Path.cwd()))  # relative
+
+mydb = mysql.connector.connect(user='root', password='Arcana000-', host='localhost')
+mycursor = mydb.cursor()
+mycursor.execute("CREATE DATABASE IF NOT EXISTS isddbb")
 
 #Establishing database connection
 db = mysql.connector.connect(user='root', password='Arcana000-', host='localhost', database='isddb')
@@ -104,6 +112,7 @@ def run(weights=ROOT / 'yolov5s.pt',  # model.pt path(s)
         dnn=False,  # use OpenCV DNN for ONNX inference
         ):
     download_csv()
+    download_images()
     source = str(source)
     save_img = not nosave and not source.endswith('.txt')  # Save inference images
     is_file = Path(source).suffix[1:] in (IMG_FORMATS + VID_FORMATS)
@@ -179,11 +188,15 @@ def run(weights=ROOT / 'yolov5s.pt',  # model.pt path(s)
             imc = im0.copy() if save_crop else im0  # for save_crop
             annotator = Annotator(im0, line_width=line_thickness, example=str(names))
             
-            #Saving detected image frame
+            ## Saving detected image frame when face is detected
+            faceCascade = cv2.CascadeClassifier(haarcascade)
+            img_gray = cv2.cvtColor(im0,cv2.COLOR_BGR2GRAY)
+            faces = faceCascade.detectMultiScale(img_gray, 1.1, 4)
+
             FilePath_o = "data/images/" + date_str + "_" + str(counting)
             suffix = ".jpg"
 
-            #Create another file if file with the same name exists
+            # Create another file if file with the same name exists
             if os.path.isfile(FilePath_o+suffix) == True:
                 number = 1
                 
@@ -354,6 +367,7 @@ def main(opt):
 
 def download_csv():
     # Downloading from database to csv file
+
     table_name = "s_" + date_str
     download_query = ("""select helmet, goggles, jacket, gloves, footwear from {}""").format(table_name)
     cursor.execute(download_query)
@@ -379,7 +393,6 @@ def download_csv():
     suffix2 = ".csv"
 
     if os.path.isfile(download_path_o+suffix2) == True:
-        print("its there")
         number = 1
                 
         download_path1 = download_path_o + "_({})".format(number)
@@ -393,11 +406,50 @@ def download_csv():
             download_path = download_path2 + suffix2
     else:
         download_path = download_path_o + suffix2
-        print("its not there")
 
     df_csv = df.to_csv(download_path)
 
     print('downloaded')
+
+#Download images of detection
+def download_images():
+    
+    table_name = "s_" + date_str
+    suffix3 = ".jpg"
+
+    download_image_query = ("""SELECT photo FROM {}""").format(table_name)
+    cursor.execute(download_image_query)
+
+    myResult = cursor.fetchall()
+    myRes = myResult[:]
+
+    for myR in myRes:
+        myd1 = myR[0]
+        # print(myd1)
+        global coun
+        coun +=1
+        StoreFilePath_o = "data/image_files_from_database/" + table_name + "_" + str(coun)
+        StoreFilePath = StoreFilePath_o + suffix3
+
+        if os.path.isfile(StoreFilePath_o+suffix3) == True:
+            number = 1
+                
+            StoreFilePath1 = StoreFilePath_o + "_({})".format(number)
+            StoreFilePath = StoreFilePath1 + suffix3
+
+            if os.path.isfile(StoreFilePath) == True:
+                num = int(StoreFilePath[-6])
+                num += 1
+
+                StoreFilePath2 = StoreFilePath_o + "_({})".format(str(num))
+                StoreFilePath = StoreFilePath2 + suffix3
+        else:
+            StoreFilePath = StoreFilePath_o + suffix3
+        
+        with open(StoreFilePath, "wb") as Fil:
+            Fil.write(myd1)
+
+    print("downloaded")
 
 if __name__ == "__main__":
     opt = parse_opt()
