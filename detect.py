@@ -60,22 +60,32 @@ ROOT = FILE.parents[0]  # YOLOv5 root directory
 if str(ROOT) not in sys.path:
     sys.path.append(str(ROOT))  # add ROOT to PATH
 ROOT = Path(os.path.relpath(ROOT, Path.cwd()))  # relative
+passwrd_correct = False
+csv_pass_correct = False
+image_pass_correct = False
 
-mydb = mysql.connector.connect(user='root', password='Arcana000-', host='localhost')
-mycursor = mydb.cursor()
+while passwrd_correct == False:
+    try:
+        passwrd = input("Database password: ")
+        mydb = mysql.connector.connect(user='root', password=passwrd, host='localhost')
+        mycursor = mydb.cursor()
+        passwrd_correct = True
+    except Exception as e:
+        print(e)
+        print("\nCould not connect to the database!\nPlease input the correct password\n")
+
 
 #Creating database if not exist
 mycursor.execute("CREATE DATABASE IF NOT EXISTS isddb")
 
 #Establishing database connection
-db = mysql.connector.connect(user='root', password='Arcana000-', host='localhost', database='isddb')
+db = mysql.connector.connect(user='root', password=passwrd, host='localhost', database='isddb')
 
 if db.is_connected():
     print("Database is connected\n")
 
 #Creating a cursor object using the cursor() method
 cursor = db.cursor()
-
 
 
 @torch.no_grad()
@@ -111,6 +121,7 @@ def run(weights=ROOT / 'yolov5s.pt',  # model.pt path(s)
     sql = ("""CREATE TABLE IF NOT EXISTS `""" +"s_"+ date_str + """` (photo LONGBLOB NOT NULL, time varchar(255), helmet varchar(255), goggles varchar(255), jacket varchar(255), gloves varchar(255), footwear varchar(255));""")
     cursor.execute(sql)
     print("Database Table is created\n")
+
 
     source = str(source)
     save_img = not nosave and not source.endswith('.txt')  # Save inference images
@@ -373,6 +384,12 @@ def main(opt):
 
 # Downloading from database to csv file
 def download_csv():
+    global csv_pass_correct
+    while csv_pass_correct == False:
+        download_csv_pass = input("Input database password to download images: ")
+        if download_csv_pass == passwrd:
+            csv_pass_correct = True
+    
     print("Downloading csv file...\n")
     table_name = "s_" + date_str
     suffix2 = ".csv"
@@ -428,8 +445,16 @@ def download_csv():
 
         print("Downloaded csv file into data/csv_files folder\n")
 
+        csv_pass_correct = False
+
 #Download images of detection
 def download_images():
+    global image_pass_correct
+    while image_pass_correct == False:
+        download_image_pass = input("Input database password to download images: ")
+        if download_image_pass == passwrd:
+            image_pass_correct = True
+    
     print("Downloading images from database...\n")
     table_name = "s_" + date_str
     suffix3 = ".jpg"
@@ -475,6 +500,7 @@ def download_images():
                 Fil.write(myd1)
 
         print("Downloaded images from database into data\image_files_from_database folder\n")
+        image_pass_correct = False
 
 if __name__ == "__main__":
     opt = parse_opt()
