@@ -37,6 +37,7 @@ from utils.general import (LOGGER, check_file, check_img_size, check_imshow, che
                            increment_path, non_max_suppression, print_args, scale_coords, strip_optimizer, xyxy2xywh)
 from utils.plots import Annotator, colors, save_one_box
 from utils.torch_utils import select_device, time_sync
+from ui_code import *
 
 from datetime import datetime
 import mysql.connector
@@ -44,49 +45,29 @@ import pandas as pd
 import numpy as np
 import os.path
 
+import sys
+from PyQt5.QtCore import QTimer
+from PyQt5.QtGui import QImage
+from PyQt5.QtGui import QPixmap
+from PyQt5.QtWidgets import QApplication
+from PyQt5.QtWidgets import QDialog
+from PyQt5.uic import loadUi
+
 #Creating variables
-haarcascade = "models/haarcascade_frontalface_default.xml"
 now = datetime.now()
 date_str = now.strftime("%Y%m%d") #tambah ini di dalam kurung untuk waktu %H:%M:%S")
-time_str = now.strftime("%H%M%S")
-date_time_str = now.strftime("%Y%m%d%H%M%S")
 counting = 0
-coun = 0
-helmet, goggles, jacket, gloves, footwear, photo, no= "0", "0", "0", "0", "0", "0", "0"
-
+helmet, goggles, jacket, gloves, footwear, photo= "0", "0", "0", "0", "0", "0"
 
 FILE = Path(__file__).resolve()
 ROOT = FILE.parents[0]  # YOLOv5 root directory
 if str(ROOT) not in sys.path:
     sys.path.append(str(ROOT))  # add ROOT to PATH
 ROOT = Path(os.path.relpath(ROOT, Path.cwd()))  # relative
+haarcascade = "models/haarcascade_frontalface_default.xml"
 passwrd_correct = False
 csv_pass_correct = False
 image_pass_correct = False
-
-while passwrd_correct == False:
-    try:
-        passwrd = input("Database password: ")
-        mydb = mysql.connector.connect(user='root', password=passwrd, host='localhost')
-        mycursor = mydb.cursor()
-        passwrd_correct = True
-    except Exception as e:
-        print(e)
-        print("\nCould not connect to the database!\nPlease input the correct password\n")
-
-
-#Creating database if not exist
-mycursor.execute("CREATE DATABASE IF NOT EXISTS isddb")
-
-#Establishing database connection
-db = mysql.connector.connect(user='root', password=passwrd, host='localhost', database='isddb')
-
-if db.is_connected():
-    print("Database is connected\n")
-
-#Creating a cursor object using the cursor() method
-cursor = db.cursor()
-
 
 @torch.no_grad()
 def run(weights=ROOT / 'yolov5s.pt',  # model.pt path(s)
@@ -116,12 +97,6 @@ def run(weights=ROOT / 'yolov5s.pt',  # model.pt path(s)
         half=False,  # use FP16 half-precision inference
         dnn=False,  # use OpenCV DNN for ONNX inference
         ):  
-
-    #Create table with name based on the date the file is created
-    sql = ("""CREATE TABLE IF NOT EXISTS `""" +"s_"+ date_str + """` (photo LONGBLOB NOT NULL, time varchar(255), helmet varchar(255), goggles varchar(255), jacket varchar(255), gloves varchar(255), footwear varchar(255));""")
-    cursor.execute(sql)
-    print("Database Table is created\n")
-
 
     source = str(source)
     save_img = not nosave and not source.endswith('.txt')  # Save inference images
@@ -206,20 +181,20 @@ def run(weights=ROOT / 'yolov5s.pt',  # model.pt path(s)
                 counting += 1
                 FilePath_o = "data/images/" + date_str + "_" + str(counting)
                 suffix = ".jpg"
-
+                
                 # Create another file if file with the same name exists
                 if os.path.isfile(FilePath_o+suffix) == True:
                     number = 1
                 
                     FilePath1 = FilePath_o + "_({})".format(number)
                     FilePath = FilePath1 + suffix
-
                     while os.path.isfile(FilePath) == True:
                         num = int(FilePath[-6])
                         num += 1
 
                         FilePath2 = FilePath_o + "_({})".format(str(num))
                         FilePath = FilePath2 + suffix
+                    
                 else:
                     FilePath = FilePath_o + suffix
                 cv2.imwrite(FilePath, im0)
@@ -227,6 +202,7 @@ def run(weights=ROOT / 'yolov5s.pt',  # model.pt path(s)
                 #Read detected image and store in photo variable
                 with open (FilePath, "rb") as File:
                     photo = File.read()
+                
 
 
                 if len(det):
@@ -257,26 +233,32 @@ def run(weights=ROOT / 'yolov5s.pt',  # model.pt path(s)
                             # cv2.imwrite(FilePath_annotated, im0)
 
                             # Inputting the detection confidence level into the variables
-                            if names[c] == "Hello":
+                            if names[c] == "Helmet":
                                 global helmet
                                 helmet = (f'{conf:.2f}')
-                            if names[c] == "No":
+                                window.Helmet.setChecked(True)
+                            if names[c] == "Goggles":
                                 global goggles
                                 goggles = (f'{conf:.2f}')
-                            if names[c] == "ILoveYou":
+                                window.Goggles.setChecked(True)
+                            if names[c] == "Jacket":
                                 global jacket 
                                 jacket = (f'{conf:.2f}')
-                            if names[c] == "Please":
+                                window.Jacket.setChecked(True)
+                            if names[c] == "Gloves":
                                 global gloves 
                                 gloves = (f'{conf:.2f}')
-                            if names[c] == "Yes":
+                                window.Gloves.setChecked(True)
+                            if names[c] == "Footwear":
                                 global footwear
                                 footwear = (f'{conf:.2f}')
+                                window.Footwear.setChecked(True)
 
                             if save_crop:
                                 save_one_box(xyxy, imc, file=save_dir / 'crops' / names[c] / f'{p.stem}.jpg', BGR=True)
+                            
 
-
+                    cursor = db.cursor()
                     # Defining the database Query
                     query = ("""INSERT INTO `"""+ "s_" + date_str + """`(photo, time, helmet, goggles, jacket, gloves, footwear) VALUES (%s, %s, %s, %s, %s, %s, %s);""")
 
@@ -294,17 +276,19 @@ def run(weights=ROOT / 'yolov5s.pt',  # model.pt path(s)
 
                     #Shows the status of the user (whether the user's equipment is complete)
                     if helmet and goggles and jacket and gloves and footwear != "0":
-                        cv2.rectangle(im0, (0,200), (640,300), (0,255,0), cv2.FILLED)
-                        cv2.putText(im0, "Equipment Complete", (150, 265), cv2.FONT_HERSHEY_COMPLEX_SMALL, 1, (0, 0, 255), 1)
+                        cv2.rectangle(im0, (0,0), (640,50), (0,255,0), cv2.FILLED)
+                        cv2.putText(im0, "Equipment Complete", (150, 25), cv2.FONT_HERSHEY_COMPLEX_SMALL, 1, (0, 0, 255), 1)
 
                     else:
-                        cv2.rectangle(im0, (0,200), (640,300), (0,255,0), cv2.FILLED)
-                        cv2.putText(im0, "Equipment not Complete", (150, 265), cv2.FONT_HERSHEY_COMPLEX_SMALL, 1, (0, 0, 255), 1)
-
+                        cv2.rectangle(im0, (0,0), (640,50), (0,255,0), cv2.FILLED)
+                        cv2.putText(im0, "Equipment not Complete", (150,25), cv2.FONT_HERSHEY_COMPLEX_SMALL, 1, (0, 0, 255), 1)
+                    
+                    helmet, goggles, jacket, gloves, footwear = "0", "0", "0", "0", "0"
+                 
                 # Stream results
                 im0 = annotator.result()
                 if view_img:
-                    cv2.imshow(str(p), im0)
+                    window.displayImage(im0, 2)
                     cv2.waitKey(1)  # 1 millisecond
 
                 # Save results (image with detections). Uncomment to save results in runs/detect
@@ -328,7 +312,12 @@ def run(weights=ROOT / 'yolov5s.pt',  # model.pt path(s)
 
             # Stream normal webcam
             else:
-                cv2.imshow(str(p), im0)
+                window.Helmet.setChecked(False)
+                window.Goggles.setChecked(False)
+                window.Jacket.setChecked(False)
+                window.Gloves.setChecked(False)
+                window.Footwear.setChecked(False)
+                window.displayImage(im0, 2)
                 cv2.waitKey(1)  # 1 millisecond
             LOGGER.info(f'{s}Done. ({t3 - t2:.3f}s)\n')
 
@@ -340,10 +329,6 @@ def run(weights=ROOT / 'yolov5s.pt',  # model.pt path(s)
         LOGGER.info(f"Results saved to {colorstr('bold', save_dir)}{s}")
     if update:
         strip_optimizer(weights)  # update model (to fix SourceChangeWarning)
-
-
-            
-
 
 def parse_opt():
     parser = argparse.ArgumentParser()
@@ -382,126 +367,15 @@ def main(opt):
     check_requirements(exclude=('tensorboard', 'thop'))
     run(**vars(opt))
 
-# Downloading from database to csv file
-def download_csv():
-    global csv_pass_correct
-    while csv_pass_correct == False:
-        download_csv_pass = input("Input database password to download images: ")
-        if download_csv_pass == passwrd:
-            csv_pass_correct = True
-    
-    print("Downloading csv file...\n")
-    table_name = "s_" + date_str
-    suffix2 = ".csv"
-    check_query = "show tables"
-    cursor.execute(check_query)
-    table_list = []
-    for table in cursor:
-        tab = table[0]
-        table_list.append(tab)
-        
-    if table_name not in table_list:
-        print('Table not found!\n')
-    else: 
-        download_query = ("""select helmet, goggles, jacket, gloves, footwear from {}""").format(table_name)
-        cursor.execute(download_query)
-
-        myallData = cursor.fetchall()
-
-        all_helmet = []
-        all_goggles = []
-        all_jacket = []
-        all_gloves = []
-        all_footwear = []
-
-        for helmet, goggles, jacket, gloves, footwear in myallData:
-            all_helmet.append(helmet)
-            all_goggles.append(goggles)
-            all_jacket.append(jacket)
-            all_gloves.append(gloves)
-            all_footwear.append(footwear)
-
-        dic = {'Helmet' : all_helmet, 'Goggles': all_goggles, 'Jacket': all_jacket, 'Gloves':all_gloves, 'Footwear': all_footwear}
-        df = pd.DataFrame(dic)
-        download_path_o = 'data/csv_files/{}'.format(table_name)
-        suffix2 = ".csv"
-
-        if os.path.isfile(download_path_o+suffix2) == True:
-            number = 1
-
-            download_path1 = download_path_o + "_({})".format(number)
-            download_path = download_path1 + suffix2
-
-            while os.path.isfile(download_path) == True:
-                num = int(download_path[-6])
-                num += 1
-
-                download_path2 = download_path_o + "_({})".format(str(num))
-                download_path = download_path2 + suffix2
-        else:
-            download_path = download_path_o + suffix2
-
-        df_csv = df.to_csv(download_path)
-
-        print("Downloaded csv file into data/csv_files folder\n")
-
-        csv_pass_correct = False
-
-#Download images of detection
-def download_images():
-    global image_pass_correct
-    while image_pass_correct == False:
-        download_image_pass = input("Input database password to download images: ")
-        if download_image_pass == passwrd:
-            image_pass_correct = True
-    
-    print("Downloading images from database...\n")
-    table_name = "s_" + date_str
-    suffix3 = ".jpg"
-    check_query = "show tables"
-    cursor.execute(check_query)
-    table_list = []
-    for table in cursor:
-        tab = table[0]
-        table_list.append(tab)
-        
-    if table_name not in table_list:
-        print('Table not found!\n')
-    else: 
-        download_image_query = ("""SELECT photo FROM {}""").format(table_name)
-        cursor.execute(download_image_query)
-
-        myResult = cursor.fetchall()
-        myRes = myResult[:]
-
-        for myR in myRes:
-            myd1 = myR[0]
-            global coun
-            coun +=1
-            StoreFilePath_o = "data/image_files_from_database/" + table_name + "_" + str(coun)
-            StoreFilePath = StoreFilePath_o + suffix3
-
-            if os.path.isfile(StoreFilePath_o+suffix3) == True:
-                number = 1
-
-                StoreFilePath1 = StoreFilePath_o + "_({})".format(number)
-                StoreFilePath = StoreFilePath1 + suffix3
-
-                while os.path.isfile(StoreFilePath) == True:
-                    num = int(StoreFilePath[-6])
-                    num += 1
-
-                    StoreFilePath2 = StoreFilePath_o + "_({})".format(str(num))
-                    StoreFilePath = StoreFilePath2 + suffix3
-            else:
-                StoreFilePath = StoreFilePath_o + suffix3
-
-            with open(StoreFilePath, "wb") as Fil:
-                Fil.write(myd1)
-
-        print("Downloaded images from database into data\image_files_from_database folder\n")
-        image_pass_correct = False
-
 if __name__ == "__main__":
+    app=QApplication(sys.argv)
+    connect_database = Connect()
+    connect_database.setWindowTitle("Connect database")
+    passwrd = connect_database.conn()
+    db = mysql.connector.connect(user='root', password=passwrd, host='localhost', database='isddb')
+    window=ISDetection()
+    window.setWindowTitle('ISD SYSTEM')
+    window.show()
     opt = parse_opt()
     main(opt)
+
