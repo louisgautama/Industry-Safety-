@@ -55,7 +55,7 @@ from PyQt5.uic import loadUi
 
 #Creating variables
 now = datetime.now()
-date_str = now.strftime("%Y%m%d") #tambah ini di dalam kurung untuk waktu %H:%M:%S")
+date_str = now.strftime("%Y%m%d") 
 counting = 0
 helmet, goggles, jacket, gloves, footwear, photo= "0", "0", "0", "0", "0", "0"
 
@@ -154,7 +154,8 @@ def run(weights=ROOT / 'yolov5s.pt',  # model.pt path(s)
 
         # Second-stage classifier (optional)
         # pred = utils.general.apply_classifier(pred, classifier_model, im, im0s)
-
+        if window.isActiveWindow() == False:
+            sys.exit()
         # Process predictions
         for i, det in enumerate(pred):  # per image
             window.logFill.setText("Detecting...")
@@ -278,7 +279,7 @@ def run(weights=ROOT / 'yolov5s.pt',  # model.pt path(s)
                     print(cursor.rowcount, "record inserted")
 
                     #Shows the status of the user (whether the user's equipment is complete)
-                    if helmet and goggles and jacket and gloves and footwear != "0":
+                    if helmet != "0" and goggles != "0" and jacket != "0" and gloves != "0" and footwear != "0":
                         cv2.rectangle(im0, (0,0), (640,50), (0,255,0), cv2.FILLED)
                         cv2.putText(im0, "Equipment Complete", (150, 25), cv2.FONT_HERSHEY_COMPLEX_SMALL, 1, (0, 0, 255), 1)
 
@@ -287,6 +288,10 @@ def run(weights=ROOT / 'yolov5s.pt',  # model.pt path(s)
                         cv2.putText(im0, "Equipment not Complete", (150,25), cv2.FONT_HERSHEY_COMPLEX_SMALL, 1, (0, 0, 255), 1)
                     
                     helmet, goggles, jacket, gloves, footwear = "0", "0", "0", "0", "0"
+
+
+
+
                  
                 # Stream results
                 window.logFill.setText("Detecting...")
