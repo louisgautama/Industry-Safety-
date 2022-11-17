@@ -154,8 +154,8 @@ def run(weights=ROOT / 'yolov5s.pt',  # model.pt path(s)
 
         # Second-stage classifier (optional)
         # pred = utils.general.apply_classifier(pred, classifier_model, im, im0s)
-        if window.isActiveWindow() == False:
-            sys.exit()
+        # if window.closeEvent():
+        #     sys.exit()
         # Process predictions
         for i, det in enumerate(pred):  # per image
             window.logFill.setText("Detecting...")
@@ -193,11 +193,15 @@ def run(weights=ROOT / 'yolov5s.pt',  # model.pt path(s)
                     FilePath1 = FilePath_o + "_({})".format(number)
                     FilePath = FilePath1 + suffix
                     while os.path.isfile(FilePath) == True:
-                        num = int(FilePath[-6])
-                        num += 1
-
-                        FilePath2 = FilePath_o + "_({})".format(str(num))
-                        FilePath = FilePath2 + suffix
+                        filepath1 = FilePath.split("(")
+                        filepath2 = filepath1[1]
+                        filepath3 = int(filepath2[0:-5])
+                        filepath3+=1
+                        filepath3 = (str(filepath3))
+                        filepath1[1] ="("+filepath3+")"
+                        filepath1 = ''.join(filepath1)
+                        
+                        FilePath = filepath1 + suffix
                     
                 else:
                     FilePath = FilePath_o + suffix

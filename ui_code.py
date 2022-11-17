@@ -1,9 +1,10 @@
 import sys
 import cv2
+from PyQt5 import QtGui,uic
 from PyQt5.QtCore import QTimer
 from PyQt5.QtGui import QImage
 from PyQt5.QtGui import QPixmap
-from PyQt5.QtWidgets import QApplication, QDialog, QInputDialog
+from PyQt5.QtWidgets import QApplication, QDialog, QInputDialog,QMessageBox
 from PyQt5.uic import loadUi
 import os
 
@@ -16,7 +17,6 @@ import os.path
 now = datetime.now()
 date_str = now.strftime("%Y%m%d") 
 date_str2 = now.strftime("%d/%m/%Y") 
-print(date_str2)
 passwrd_correct = False
 csv_pass_correct = False
 image_pass_correct = False
@@ -72,15 +72,32 @@ class Connect(QInputDialog):
 class ISDetection(QDialog):
     def __init__(self):
         super(ISDetection,self).__init__()
-        loadUi('ISD.ui',self)
-        self.downloadCsv.clicked.connect(self.download_csv)
-        self.downloadImages.clicked.connect(self.download_images)
-        self.StopScan.clicked.connect(self.stop_webcam)
-        self.DateLabel_2.setText(date_str2)
-        self.logFill.setText("Initializing...")
+        self.ui = uic.loadUi('ISD.ui',self)
+        self.ui.closeEvent = self.closeEvent
+        self.ui.downloadCsv.clicked.connect(self.download_csv)
+        self.ui.downloadImages.clicked.connect(self.download_images)
+        self.ui.StopScan.clicked.connect(self.stop_webcam)
+        self.ui.DateLabel_2.setText(date_str2)
+        self.ui.logFill.setText("Initializing...")
+    
+    def closeEvent(self, event):
+        reply = QMessageBox.question(self, 'Message',
+            "Are you sure you want to quit?", QMessageBox.Yes, QMessageBox.No)
+
+        if reply == QMessageBox.Yes:
+            event.accept()
+            sys.exit()
+        else:
+            event.ignore()
 
     def stop_webcam(self):
-        sys.exit()
+        reply = QMessageBox.question(self, 'Message',
+            "Are you sure you want to quit?", QMessageBox.Yes, QMessageBox.No)
+
+        if reply == QMessageBox.Yes:
+            sys.exit()
+        else:
+            return
 
     def displayImage(self,im0,window=1):
         qformat=QImage.Format_Indexed8
@@ -169,7 +186,8 @@ class ISDetection(QDialog):
 
             df_csv = df.to_csv(download_path)
 
-            print("Downloaded csv file into data/csv_files folder\n")
+            self.logFill.setText("Downloaded csv file into data/csv_files folder\n")
+
 
             csv_pass_correct = False
             
@@ -196,7 +214,6 @@ class ISDetection(QDialog):
             if download_image_pass == passwrd:
                 image_pass_correct = True
         
-        print("Downloading images from database...\n")
         table_name = "s_" + date_str
         suffix3 = ".jpg"
         check_query = "show tables"
@@ -207,7 +224,7 @@ class ISDetection(QDialog):
             table_list.append(tab)
             
         if table_name not in table_list:
-            print('Table not found!\n')
+            self.logFill.setText('Table not found!\n')
         else: 
             download_image_query = ("""SELECT photo FROM {}""").format(table_name)
             cursor.execute(download_image_query)
@@ -240,5 +257,5 @@ class ISDetection(QDialog):
                 with open(StoreFilePath, "wb") as Fil:
                     Fil.write(myd1)
 
-            print("Downloaded images from database into data\image_files_from_database folder\n")
+            self.logFill.setText("Downloaded images from database into data\image_files_from_database folder\n")
             image_pass_correct = False
