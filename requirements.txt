@@ -11,6 +11,10 @@ scipy>=1.4.1
 torch>=1.7.0
 torchvision>=0.8.1
 tqdm>=4.41.0
+mysql-connector-python>=8.0.31
+PyQt5>=5.15.7
+PyQt5-Qt5>=5.15.2
+PyQt5-sip>=12.11.0
 
 # Logging -------------------------------------
 tensorboard>=2.4.1
