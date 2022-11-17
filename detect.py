@@ -123,6 +123,7 @@ def run(weights=ROOT / 'yolov5s.pt',  # model.pt path(s)
         cudnn.benchmark = True  # set True to speed up constant image size inference
         dataset = LoadStreams(source, img_size=imgsz, stride=stride, auto=pt)
         bs = len(dataset)  # batch_size
+        
     else:
         dataset = LoadImages(source, img_size=imgsz, stride=stride, auto=pt)
         bs = 1  # batch_size
@@ -156,6 +157,7 @@ def run(weights=ROOT / 'yolov5s.pt',  # model.pt path(s)
 
         # Process predictions
         for i, det in enumerate(pred):  # per image
+            window.logFill.setText("Detecting...")
             seen += 1
             if webcam:  # batch_size >= 1
                 p, im0, frame = path[i], im0s[i].copy(), dataset.count
@@ -175,6 +177,7 @@ def run(weights=ROOT / 'yolov5s.pt',  # model.pt path(s)
             faceCascade = cv2.CascadeClassifier(haarcascade)
             img_gray = cv2.cvtColor(im0,cv2.COLOR_BGR2GRAY)
             faces = faceCascade.detectMultiScale(img_gray, 1.1, 4)
+            
 
             if len(faces) != 0:
                 global counting
@@ -286,6 +289,7 @@ def run(weights=ROOT / 'yolov5s.pt',  # model.pt path(s)
                     helmet, goggles, jacket, gloves, footwear = "0", "0", "0", "0", "0"
                  
                 # Stream results
+                window.logFill.setText("Detecting...")
                 im0 = annotator.result()
                 if view_img:
                     window.displayImage(im0, 2)
@@ -378,4 +382,5 @@ if __name__ == "__main__":
     window.show()
     opt = parse_opt()
     main(opt)
+    sys.exit()
 

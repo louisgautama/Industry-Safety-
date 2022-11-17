@@ -15,16 +15,20 @@ import os.path
 
 now = datetime.now()
 date_str = now.strftime("%Y%m%d") 
+date_str2 = now.strftime("%d/%m/%Y") 
+print(date_str2)
 passwrd_correct = False
 csv_pass_correct = False
 image_pass_correct = False
+
+coun = 0
 
 
 
 class Connect(QInputDialog):
     def __init__(self):
         super(Connect,self).__init__()
-        
+                
     
     def conn(self):
         dialog_text = "Input database password: "
@@ -72,6 +76,8 @@ class ISDetection(QDialog):
         self.downloadCsv.clicked.connect(self.download_csv)
         self.downloadImages.clicked.connect(self.download_images)
         self.StopScan.clicked.connect(self.stop_webcam)
+        self.DateLabel_2.setText(date_str2)
+        self.logFill.setText("Initializing...")
 
     def stop_webcam(self):
         sys.exit()
@@ -94,6 +100,7 @@ class ISDetection(QDialog):
 
     #Download csv of detection data from database
     def download_csv(self):
+        self.logFill.setText("Downloading csv")
         global csv_pass_correct
         db = mysql.connector.connect(user='root', password=passwrd, host='localhost', database='isddb')
         cursor = db.cursor()
@@ -165,9 +172,11 @@ class ISDetection(QDialog):
             print("Downloaded csv file into data/csv_files folder\n")
 
             csv_pass_correct = False
+            
 
     #Download images of detection
     def download_images(self):
+        self.logFill.setText("Downloading images")
         global image_pass_correct
         db = mysql.connector.connect(user='root', password=passwrd, host='localhost', database='isddb')
         cursor = db.cursor()
