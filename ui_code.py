@@ -1,10 +1,15 @@
 import sys
 import cv2
+from PyQt5.QtWidgets import *
+from PyQt5 import QtCore, QtGui
+from PyQt5.QtGui import *
+from PyQt5.QtCore import *
+import sys
 from PyQt5 import QtGui,uic
 from PyQt5.QtCore import QTimer
 from PyQt5.QtGui import QImage
 from PyQt5.QtGui import QPixmap
-from PyQt5.QtWidgets import QApplication, QDialog, QInputDialog,QMessageBox
+from PyQt5.QtWidgets import QApplication, QDialog, QInputDialog,QMessageBox, QDateEdit
 from PyQt5.uic import loadUi
 import os
 
@@ -20,10 +25,9 @@ date_str2 = now.strftime("%d/%m/%Y")
 passwrd_correct = False
 csv_pass_correct = False
 image_pass_correct = False
+date_picked = False
 
 coun = 0
-
-
 
 class Connect(QInputDialog):
     def __init__(self):
@@ -72,14 +76,15 @@ class Connect(QInputDialog):
 class ISDetection(QDialog):
     def __init__(self):
         super(ISDetection,self).__init__()
+        self.w = None  # No external window yet.
         self.ui = uic.loadUi('ISD.ui',self)
         self.ui.closeEvent = self.closeEvent
         self.ui.downloadCsv.clicked.connect(self.download_csv)
         self.ui.downloadImages.clicked.connect(self.download_images)
         self.ui.StopScan.clicked.connect(self.stop_webcam)
         self.ui.DateLabel_2.setText(date_str2)
-        self.ui.logFill.setText("Initializing...")
-    
+        self.ui.logFill.setText("Initializing...")                     
+        
     def closeEvent(self, event):
         reply = QMessageBox.question(self, 'Message',
             "Are you sure you want to quit?", QMessageBox.Yes, QMessageBox.No)
@@ -100,6 +105,7 @@ class ISDetection(QDialog):
             return
 
     def displayImage(self,im0,window=1):
+        
         qformat=QImage.Format_Indexed8
         if len(im0.shape)==3:
             if im0.shape[2]==4:
@@ -117,6 +123,9 @@ class ISDetection(QDialog):
 
     #Download csv of detection data from database
     def download_csv(self):
+
+        
+
         self.logFill.setText("Downloading csv")
         global csv_pass_correct
         db = mysql.connector.connect(user='root', password=passwrd, host='localhost', database='isddb')
@@ -132,9 +141,11 @@ class ISDetection(QDialog):
                     dialog_text = "Wrong Password! Input correct password: "
             else:
                 return
-       
-        print("Downloading csv file...\n")
-        table_name = "s_" + date_str
+
+        print("Downloading csv file...\n")     
+        
+        date = self.date_picker()
+        table_name = "s_" + date
         suffix2 = ".csv"
         check_query = "show tables"
         cursor.execute(check_query)
@@ -171,16 +182,19 @@ class ISDetection(QDialog):
 
             if os.path.isfile(download_path_o+suffix2) == True:
                 number = 1
-
+            
                 download_path1 = download_path_o + "_({})".format(number)
                 download_path = download_path1 + suffix2
-
                 while os.path.isfile(download_path) == True:
-                    num = int(download_path[-6])
-                    num += 1
-
-                    download_path2 = download_path_o + "_({})".format(str(num))
-                    download_path = download_path2 + suffix2
+                    download_path1 = download_path.split("(")
+                    download_path2 = download_path1[1]
+                    download_path3 = int(download_path2[0:-5])
+                    download_path3+=1
+                    download_path3 = (str(download_path3))
+                    download_path1[1] ="("+download_path3+")"
+                    download_path1 = ''.join(download_path1)
+                    
+                    download_path = download_path1 + suffix2
             else:
                 download_path = download_path_o + suffix2
 
@@ -190,7 +204,52 @@ class ISDetection(QDialog):
 
 
             csv_pass_correct = False
-            
+    
+    def date_picker(self):
+        date = QDateEdit(self, calendarPopup = True)
+ 
+        # setting geometry of the date edit
+        date.setGeometry(100, 100, 150, 40)
+        date.setDateTime(QtCore.QDateTime.currentDateTime())
+
+        date.setDisplayFormat("dd MMM yyyy")
+
+        # creating a push button
+        push = QPushButton("OK", self)
+ 
+        # setting geometry of the push button
+        push.setGeometry(0, 50, 120, 30)
+ 
+        # adding action to the push button
+        # selecting all the text
+        push.clicked.connect(lambda: date_method())
+        
+
+        # creating a label
+        label = QLabel("GeeksforGeeks", self)
+ 
+        # setting geometry
+        label.setGeometry(100, 150, 200, 60)
+ 
+        # making label multiline
+        label.setWordWrap(True)
+ 
+        # adding action to the date when enter key is pressed
+        date.editingFinished.connect(lambda: date_method())
+        
+        # method called by date edit
+        def date_method():
+ 
+            # getting the date
+            value = date.date()
+            value = value.toString('yyyyMMdd')
+            # setting text to the label
+            label.setText("Selected Date : " + value)
+            # print(value)
+            date_picked == True
+            return value
+        val = date_method()
+        return val
 
     #Download images of detection
     def download_images(self):
@@ -214,7 +273,8 @@ class ISDetection(QDialog):
             if download_image_pass == passwrd:
                 image_pass_correct = True
         
-        table_name = "s_" + date_str
+        date = self.date_picker()
+        table_name = "s_" + date
         suffix3 = ".jpg"
         check_query = "show tables"
         cursor.execute(check_query)
@@ -241,16 +301,19 @@ class ISDetection(QDialog):
 
                 if os.path.isfile(StoreFilePath_o+suffix3) == True:
                     number = 1
-
+                
                     StoreFilePath1 = StoreFilePath_o + "_({})".format(number)
                     StoreFilePath = StoreFilePath1 + suffix3
-
                     while os.path.isfile(StoreFilePath) == True:
-                        num = int(StoreFilePath[-6])
-                        num += 1
-
-                        StoreFilePath2 = StoreFilePath_o + "_({})".format(str(num))
-                        StoreFilePath = StoreFilePath2 + suffix3
+                        StoreFilePath1 = StoreFilePath.split("(")
+                        StoreFilePath2 = StoreFilePath1[1]
+                        StoreFilePath3 = int(StoreFilePath2[0:-5])
+                        StoreFilePath3+=1
+                        StoreFilePath3 = (str(StoreFilePath3))
+                        StoreFilePath1[1] ="("+StoreFilePath3+")"
+                        StoreFilePath1 = ''.join(StoreFilePath1)
+                        
+                        StoreFilePath = StoreFilePath1 + suffix3
                 else:
                     StoreFilePath = StoreFilePath_o + suffix3
 
