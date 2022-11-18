@@ -1,6 +1,7 @@
 #Import libraries
 import sys
 import cv2
+from PyQt5 import QtWidgets
 from PyQt5.QtWidgets import *
 from PyQt5 import QtCore, QtGui, uic
 from PyQt5.QtGui import *
@@ -82,7 +83,8 @@ class ISDetection(QDialog):
         self.ui.downloadImages.clicked.connect(self.download_images)
         self.ui.StopScan.clicked.connect(self.stop_webcam)
         self.ui.DateLabel_2.setText(date_str2)
-        self.ui.logFill.setText("Initializing...")             
+        self.ui.logFill.setText("Initializing...")        
+        self.ui.logDownloaded.setText(" ")     
 
     #Pop-up message before quitting the system  
     def closeEvent(self, event):
@@ -126,8 +128,6 @@ class ISDetection(QDialog):
     #Download csv of detection data from database
     def download_csv(self):
 
-        
-
         self.logFill.setText("Downloading csv")
         global csv_pass_correct
         db = mysql.connector.connect(user='root', password=passwrd, host='localhost', database='isddb')
@@ -144,7 +144,7 @@ class ISDetection(QDialog):
             else:
                 return
 
-        print("Downloading csv file...\n")     
+        self.logDownloaded.setText("Downloading csv file")
         
         date = self.date_picker()
         table_name = "s_" + date
@@ -157,7 +157,7 @@ class ISDetection(QDialog):
             table_list.append(tab)
             
         if table_name not in table_list:
-            print('Table not found!\n')
+            self.logDownloaded.setText('Table not found!')
         else: 
             download_query = ("""select helmet, goggles, jacket, gloves, footwear from {}""").format(table_name)
             cursor.execute(download_query)
@@ -202,14 +202,14 @@ class ISDetection(QDialog):
 
             df_csv = df.to_csv(download_path)
 
-            self.logFill.setText("Downloaded csv file into data/csv_files folder\n")
+            self.logDownloaded.setText("Downloaded csv file")
 
 
             csv_pass_correct = False
-    
+
     #Download images of detection
     def download_images(self):
-
+        
         self.logFill.setText("Downloading images")
         global image_pass_correct
         db = mysql.connector.connect(user='root', password=passwrd, host='localhost', database='isddb')
@@ -241,7 +241,7 @@ class ISDetection(QDialog):
             table_list.append(tab)
             
         if table_name not in table_list:
-            self.logFill.setText('Table not found!\n')
+            self.logDownloaded.setText('Images not found!\n')
         else: 
             download_image_query = ("""SELECT photo FROM {}""").format(table_name)
             cursor.execute(download_image_query)
@@ -277,52 +277,43 @@ class ISDetection(QDialog):
                 with open(StoreFilePath, "wb") as Fil:
                     Fil.write(myd1)
 
-            self.logFill.setText("Downloaded images from database into data\image_files_from_database folder\n")
+            self.logDownloaded.setText("Images Downloaded")
             image_pass_correct = False
-
+    
     #Date picker to pick the date of the dataset to be downloaded
     def date_picker(self):
-        date = QDateEdit(self, calendarPopup = True)
+        def date_method():
+            # getting the date
+            value = date.date()
+            value = value.toString('yyyyMMdd')
+            return value   
+
+        dlg = QDialog(self)
+        dlg.setWindowTitle("HELLO!")
+
+        # QBtn = QDialogButtonBox.Ok | QDialogButtonBox.Cancel
+
+        # dlg.buttonBox = QDialogButtonBox(QBtn)
+        # dlg.buttonBox.accepted.connect(dlg.accept)
+        # dlg.buttonBox.rejected.connect(dlg.reject)
+
+        dlg.layout = QVBoxLayout()
+        message = QLabel("Pick a date: ")
+        dlg.layout.addWidget(message)
+        # dlg.layout.addWidget(dlg.buttonBox)
+        
+        dlg.setLayout(dlg.layout)
+        
+        date = QtWidgets.QDateEdit(dlg, calendarPopup = True)
  
         # setting geometry of the date edit
         date.setGeometry(100, 100, 150, 40)
         date.setDateTime(QtCore.QDateTime.currentDateTime())
 
         date.setDisplayFormat("dd MMM yyyy")
+        dlg.layout.addWidget(date)
+        date.show()
 
-        # creating a push button
-        push = QPushButton("OK", self)
- 
-        # setting geometry of the push button
-        push.setGeometry(0, 50, 120, 30)
- 
-        # adding action to the push button
-        # selecting all the text
-        push.clicked.connect(lambda: date_method())
-        
-
-        # creating a label
-        label = QLabel("GeeksforGeeks", self)
- 
-        # setting geometry
-        label.setGeometry(100, 150, 200, 60)
- 
-        # making label multiline
-        label.setWordWrap(True)
- 
-        # adding action to the date when enter key is pressed
-        date.editingFinished.connect(lambda: date_method())
-        
-        # method called by date edit
-        def date_method():
- 
-            # getting the date
-            value = date.date()
-            value = value.toString('yyyyMMdd')
-            # setting text to the label
-            label.setText("Selected Date : " + value)
-            # print(value)
-            date_picked == True
-            return value
+        dlg.exec()
         val = date_method()
         return val
