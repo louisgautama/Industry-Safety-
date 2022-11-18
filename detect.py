@@ -23,7 +23,6 @@ Usage - formats:
 """
 #Import libraries
 import argparse
-import os
 import sys
 from pathlib import Path
 
@@ -37,27 +36,22 @@ from utils.general import (LOGGER, check_file, check_img_size, check_imshow, che
                            increment_path, non_max_suppression, print_args, scale_coords, strip_optimizer, xyxy2xywh)
 from utils.plots import Annotator, colors, save_one_box
 from utils.torch_utils import select_device, time_sync
-from ui_code import *
 
+from ui_code import *
 from datetime import datetime
 import mysql.connector
-import pandas as pd
-import numpy as np
 import os.path
 
-import sys
-from PyQt5.QtCore import QTimer
-from PyQt5.QtGui import QImage
-from PyQt5.QtGui import QPixmap
 from PyQt5.QtWidgets import QApplication
-from PyQt5.QtWidgets import QDialog
-from PyQt5.uic import loadUi
 
 #Creating variables
 now = datetime.now()
 date_str = now.strftime("%Y%m%d") 
 counting = 0
 helmet, goggles, jacket, gloves, footwear, photo= "0", "0", "0", "0", "0", "0"
+passwrd_correct = False
+csv_pass_correct = False
+image_pass_correct = False
 
 FILE = Path(__file__).resolve()
 ROOT = FILE.parents[0]  # YOLOv5 root directory
@@ -65,9 +59,6 @@ if str(ROOT) not in sys.path:
     sys.path.append(str(ROOT))  # add ROOT to PATH
 ROOT = Path(os.path.relpath(ROOT, Path.cwd()))  # relative
 haarcascade = "models/haarcascade_frontalface_default.xml"
-passwrd_correct = False
-csv_pass_correct = False
-image_pass_correct = False
 
 @torch.no_grad()
 def run(weights=ROOT / 'yolov5s.pt',  # model.pt path(s)
@@ -154,8 +145,7 @@ def run(weights=ROOT / 'yolov5s.pt',  # model.pt path(s)
 
         # Second-stage classifier (optional)
         # pred = utils.general.apply_classifier(pred, classifier_model, im, im0s)
-        # if window.closeEvent():
-        #     sys.exit()
+
         # Process predictions
         for i, det in enumerate(pred):  # per image
             window.logFill.setText("Detecting...")
@@ -179,7 +169,7 @@ def run(weights=ROOT / 'yolov5s.pt',  # model.pt path(s)
             img_gray = cv2.cvtColor(im0,cv2.COLOR_BGR2GRAY)
             faces = faceCascade.detectMultiScale(img_gray, 1.1, 4)
             
-
+            #Stars detecting equipments if face is detected
             if len(faces) != 0:
                 global counting
                 counting += 1
@@ -205,14 +195,15 @@ def run(weights=ROOT / 'yolov5s.pt',  # model.pt path(s)
                     
                 else:
                     FilePath = FilePath_o + suffix
+                
+                #Saving detected image into the computer
                 cv2.imwrite(FilePath, im0)
 
                 #Read detected image and store in photo variable
                 with open (FilePath, "rb") as File:
                     photo = File.read()
                 
-
-
+                #Starts to detect equipment
                 if len(det):
                     # Rescale boxes from img_size to im0 size
                     det[:, :4] = scale_coords(im.shape[2:], det[:, :4], im0.shape).round()
@@ -235,10 +226,6 @@ def run(weights=ROOT / 'yolov5s.pt',  # model.pt path(s)
                             c = int(cls)  # integer class
                             label = None if hide_labels else (names[c] if hide_conf else f'{names[c]} {conf:.2f}') 
                             annotator.box_label(xyxy, label, color=colors(c, True))
-
-                            # Uncomment below if annotated image wants to be saved
-                            # FilePath_annotated = "data/images/" + date_str + "_" + str(counting) +"_annotated" + ".jpg"
-                            # cv2.imwrite(FilePath_annotated, im0)
 
                             # Inputting the detection confidence level into the variables
                             if names[c] == "Helmet":
@@ -291,11 +278,8 @@ def run(weights=ROOT / 'yolov5s.pt',  # model.pt path(s)
                         cv2.rectangle(im0, (0,0), (640,50), (0,255,0), cv2.FILLED)
                         cv2.putText(im0, "Equipment not Complete", (150,25), cv2.FONT_HERSHEY_COMPLEX_SMALL, 1, (0, 0, 255), 1)
                     
+                    #Resetting equipment variables
                     helmet, goggles, jacket, gloves, footwear = "0", "0", "0", "0", "0"
-
-
-
-
                  
                 # Stream results
                 window.logFill.setText("Detecting...")
@@ -304,7 +288,7 @@ def run(weights=ROOT / 'yolov5s.pt',  # model.pt path(s)
                     window.displayImage(im0, 2)
                     cv2.waitKey(1)  # 1 millisecond
 
-                # Save results (image with detections). Uncomment to save results in runs/detect
+                # Save results (image with detections). Uncomment to save video results in runs/detect
                 # if save_img:
                 #     if dataset.mode == 'image':
                 #         cv2.imwrite(save_path, im0)
@@ -323,13 +307,16 @@ def run(weights=ROOT / 'yolov5s.pt',  # model.pt path(s)
                 #             vid_writer[i] = cv2.VideoWriter(save_path, cv2.VideoWriter_fourcc(*'mp4v'), fps, (w, h))
                 #         vid_writer[i].write(im0)
 
-            # Stream normal webcam
+            #Stream webcam when no face is detected
             else:
+                #Uncheck the checkboxes
                 window.Helmet.setChecked(False)
                 window.Goggles.setChecked(False)
                 window.Jacket.setChecked(False)
                 window.Gloves.setChecked(False)
                 window.Footwear.setChecked(False)
+
+                #Stream webcam
                 window.displayImage(im0, 2)
                 cv2.waitKey(1)  # 1 millisecond
             LOGGER.info(f'{s}Done. ({t3 - t2:.3f}s)\n')

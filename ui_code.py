@@ -1,15 +1,11 @@
+#Import libraries
 import sys
 import cv2
 from PyQt5.QtWidgets import *
-from PyQt5 import QtCore, QtGui
+from PyQt5 import QtCore, QtGui, uic
 from PyQt5.QtGui import *
 from PyQt5.QtCore import *
 import sys
-from PyQt5 import QtGui,uic
-from PyQt5.QtCore import QTimer
-from PyQt5.QtGui import QImage
-from PyQt5.QtGui import QPixmap
-from PyQt5.QtWidgets import QApplication, QDialog, QInputDialog,QMessageBox, QDateEdit
 from PyQt5.uic import loadUi
 import os
 
@@ -19,6 +15,7 @@ import pandas as pd
 import numpy as np
 import os.path
 
+#Creating variables
 now = datetime.now()
 date_str = now.strftime("%Y%m%d") 
 date_str2 = now.strftime("%d/%m/%Y") 
@@ -26,14 +23,15 @@ passwrd_correct = False
 csv_pass_correct = False
 image_pass_correct = False
 date_picked = False
-
-coun = 0
+count = 0
 
 class Connect(QInputDialog):
+
+    #Initialization
     def __init__(self):
         super(Connect,self).__init__()
                 
-    
+    #Connecting to database
     def conn(self):
         dialog_text = "Input database password: "
         global passwrd_correct
@@ -74,6 +72,7 @@ class Connect(QInputDialog):
 
 
 class ISDetection(QDialog):
+    #Initialization
     def __init__(self):
         super(ISDetection,self).__init__()
         self.w = None  # No external window yet.
@@ -83,8 +82,9 @@ class ISDetection(QDialog):
         self.ui.downloadImages.clicked.connect(self.download_images)
         self.ui.StopScan.clicked.connect(self.stop_webcam)
         self.ui.DateLabel_2.setText(date_str2)
-        self.ui.logFill.setText("Initializing...")                     
-        
+        self.ui.logFill.setText("Initializing...")             
+
+    #Pop-up message before quitting the system  
     def closeEvent(self, event):
         reply = QMessageBox.question(self, 'Message',
             "Are you sure you want to quit?", QMessageBox.Yes, QMessageBox.No)
@@ -95,6 +95,7 @@ class ISDetection(QDialog):
         else:
             event.ignore()
 
+    #Closes the window and stops the system
     def stop_webcam(self):
         reply = QMessageBox.question(self, 'Message',
             "Are you sure you want to quit?", QMessageBox.Yes, QMessageBox.No)
@@ -104,6 +105,7 @@ class ISDetection(QDialog):
         else:
             return
 
+    #Display the detection screen on GUI
     def displayImage(self,im0,window=1):
         
         qformat=QImage.Format_Indexed8
@@ -205,6 +207,80 @@ class ISDetection(QDialog):
 
             csv_pass_correct = False
     
+    #Download images of detection
+    def download_images(self):
+
+        self.logFill.setText("Downloading images")
+        global image_pass_correct
+        db = mysql.connector.connect(user='root', password=passwrd, host='localhost', database='isddb')
+        cursor = db.cursor()
+        dialog_text = "Input database password: "
+        while image_pass_correct == False:
+            text, ok = QInputDialog.getText(self, 'Password', dialog_text)
+            if ok:
+                download_image_pass = text
+                if download_image_pass == passwrd:
+                    image_pass_correct = True
+                else:
+                    dialog_text = "Wrong Password! Input correct password: "
+            else:
+                return
+        while image_pass_correct == False:
+            download_image_pass = input("Input database password to download images: ")
+            if download_image_pass == passwrd:
+                image_pass_correct = True
+        
+        date = self.date_picker()
+        table_name = "s_" + date
+        suffix3 = ".jpg"
+        check_query = "show tables"
+        cursor.execute(check_query)
+        table_list = []
+        for table in cursor:
+            tab = table[0]
+            table_list.append(tab)
+            
+        if table_name not in table_list:
+            self.logFill.setText('Table not found!\n')
+        else: 
+            download_image_query = ("""SELECT photo FROM {}""").format(table_name)
+            cursor.execute(download_image_query)
+
+            myResult = cursor.fetchall()
+            myRes = myResult[:]
+
+            for myR in myRes:
+                myd1 = myR[0]
+                global count
+                count +=1
+                StoreFilePath_o = "data/image_files_from_database/" + table_name + "_" + str(count)
+                StoreFilePath = StoreFilePath_o + suffix3
+
+                if os.path.isfile(StoreFilePath_o+suffix3) == True:
+                    number = 1
+                
+                    StoreFilePath1 = StoreFilePath_o + "_({})".format(number)
+                    StoreFilePath = StoreFilePath1 + suffix3
+                    while os.path.isfile(StoreFilePath) == True:
+                        StoreFilePath1 = StoreFilePath.split("(")
+                        StoreFilePath2 = StoreFilePath1[1]
+                        StoreFilePath3 = int(StoreFilePath2[0:-5])
+                        StoreFilePath3+=1
+                        StoreFilePath3 = (str(StoreFilePath3))
+                        StoreFilePath1[1] ="("+StoreFilePath3+")"
+                        StoreFilePath1 = ''.join(StoreFilePath1)
+                        
+                        StoreFilePath = StoreFilePath1 + suffix3
+                else:
+                    StoreFilePath = StoreFilePath_o + suffix3
+
+                with open(StoreFilePath, "wb") as Fil:
+                    Fil.write(myd1)
+
+            self.logFill.setText("Downloaded images from database into data\image_files_from_database folder\n")
+            image_pass_correct = False
+
+    #Date picker to pick the date of the dataset to be downloaded
     def date_picker(self):
         date = QDateEdit(self, calendarPopup = True)
  
@@ -250,75 +326,3 @@ class ISDetection(QDialog):
             return value
         val = date_method()
         return val
-
-    #Download images of detection
-    def download_images(self):
-        self.logFill.setText("Downloading images")
-        global image_pass_correct
-        db = mysql.connector.connect(user='root', password=passwrd, host='localhost', database='isddb')
-        cursor = db.cursor()
-        dialog_text = "Input database password: "
-        while image_pass_correct == False:
-            text, ok = QInputDialog.getText(self, 'Password', dialog_text)
-            if ok:
-                download_image_pass = text
-                if download_image_pass == passwrd:
-                    image_pass_correct = True
-                else:
-                    dialog_text = "Wrong Password! Input correct password: "
-            else:
-                return
-        while image_pass_correct == False:
-            download_image_pass = input("Input database password to download images: ")
-            if download_image_pass == passwrd:
-                image_pass_correct = True
-        
-        date = self.date_picker()
-        table_name = "s_" + date
-        suffix3 = ".jpg"
-        check_query = "show tables"
-        cursor.execute(check_query)
-        table_list = []
-        for table in cursor:
-            tab = table[0]
-            table_list.append(tab)
-            
-        if table_name not in table_list:
-            self.logFill.setText('Table not found!\n')
-        else: 
-            download_image_query = ("""SELECT photo FROM {}""").format(table_name)
-            cursor.execute(download_image_query)
-
-            myResult = cursor.fetchall()
-            myRes = myResult[:]
-
-            for myR in myRes:
-                myd1 = myR[0]
-                global coun
-                coun +=1
-                StoreFilePath_o = "data/image_files_from_database/" + table_name + "_" + str(coun)
-                StoreFilePath = StoreFilePath_o + suffix3
-
-                if os.path.isfile(StoreFilePath_o+suffix3) == True:
-                    number = 1
-                
-                    StoreFilePath1 = StoreFilePath_o + "_({})".format(number)
-                    StoreFilePath = StoreFilePath1 + suffix3
-                    while os.path.isfile(StoreFilePath) == True:
-                        StoreFilePath1 = StoreFilePath.split("(")
-                        StoreFilePath2 = StoreFilePath1[1]
-                        StoreFilePath3 = int(StoreFilePath2[0:-5])
-                        StoreFilePath3+=1
-                        StoreFilePath3 = (str(StoreFilePath3))
-                        StoreFilePath1[1] ="("+StoreFilePath3+")"
-                        StoreFilePath1 = ''.join(StoreFilePath1)
-                        
-                        StoreFilePath = StoreFilePath1 + suffix3
-                else:
-                    StoreFilePath = StoreFilePath_o + suffix3
-
-                with open(StoreFilePath, "wb") as Fil:
-                    Fil.write(myd1)
-
-            self.logFill.setText("Downloaded images from database into data\image_files_from_database folder\n")
-            image_pass_correct = False
