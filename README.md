@@ -5,6 +5,8 @@ To run program, run "run.py"
 NOTE: 
 1. Required to download, install and set-up MySQL before running run.py. Remember the password when setting up the local database.
 
+How to download reference: https://www.youtube.com/watch?v=u96rVINbAUI
+
 2. Make sure to install all the dependencies before running run.py using the command below:
 
 pip install -r requirements.txt
