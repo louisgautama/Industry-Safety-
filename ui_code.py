@@ -1,19 +1,16 @@
 #Import libraries
 import sys
-import cv2
 from PyQt5 import QtWidgets
 from PyQt5.QtWidgets import *
-from PyQt5 import QtCore, QtGui, uic
+from PyQt5 import QtCore, uic
 from PyQt5.QtGui import *
 from PyQt5.QtCore import *
 import sys
 from PyQt5.uic import loadUi
-import os
 
 from datetime import datetime
 import mysql.connector
 import pandas as pd
-import numpy as np
 import os.path
 
 #Creating variables
@@ -27,7 +24,6 @@ date_picked = False
 count = 0
 
 class Connect(QInputDialog):
-
     #Initialization
     def __init__(self):
         super(Connect,self).__init__()
@@ -71,12 +67,11 @@ class Connect(QInputDialog):
         print("Database Table is created\n")
         return passwrd
 
-
 class ISDetection(QDialog):
     #Initialization
     def __init__(self):
         super(ISDetection,self).__init__()
-        self.w = None  # No external window yet.
+        self.w = None
         self.ui = uic.loadUi('ISD.ui',self)
         self.ui.closeEvent = self.closeEvent
         self.ui.downloadCsv.clicked.connect(self.download_csv)
@@ -127,12 +122,13 @@ class ISDetection(QDialog):
 
     #Download csv of detection data from database
     def download_csv(self):
-
         self.logFill.setText("Downloading csv")
         global csv_pass_correct
         db = mysql.connector.connect(user='root', password=passwrd, host='localhost', database='isddb')
         cursor = db.cursor()
         dialog_text = "Input database password: "
+
+        #Prompts input dialog to input password before downloading
         while csv_pass_correct == False:
             text, ok = QInputDialog.getText(self, 'Password', dialog_text)
             if ok:
@@ -145,12 +141,15 @@ class ISDetection(QDialog):
                 return
 
         self.logDownloaded.setText("Downloading csv file")
-        
+
+        #Pick the date of the table to be downloaded
         date = self.date_picker()
         table_name = "s_" + date
         suffix2 = ".csv"
         check_query = "show tables"
         cursor.execute(check_query)
+
+        #Check if table exists
         table_list = []
         for table in cursor:
             tab = table[0]
@@ -158,7 +157,10 @@ class ISDetection(QDialog):
             
         if table_name not in table_list:
             self.logDownloaded.setText('Table not found!')
+
+        #Downloading csv
         else: 
+            #Getting data from database
             download_query = ("""select time, helmet, goggles, jacket, gloves, footwear from {}""").format(table_name)
             cursor.execute(download_query)
 
@@ -184,6 +186,7 @@ class ISDetection(QDialog):
             download_path_o = 'data/csv_files/{}'.format(table_name)
             suffix2 = ".csv"
 
+            #Create a new file if file with same name exists when downloading
             if os.path.isfile(download_path_o+suffix2) == True:
                 number = 1
             
@@ -202,21 +205,19 @@ class ISDetection(QDialog):
             else:
                 download_path = download_path_o + suffix2
 
+            #Downloads the csv file
             df_csv = df.to_csv(download_path)
-
             self.logDownloaded.setText("Downloaded csv file")
-
-
             csv_pass_correct = False
 
     #Download images of detection
     def download_images(self):
-        
-        self.logFill.setText("Downloading images")
         global image_pass_correct
         db = mysql.connector.connect(user='root', password=passwrd, host='localhost', database='isddb')
         cursor = db.cursor()
         dialog_text = "Input database password: "
+
+        #Prompts input dialog to input password before downloading
         while image_pass_correct == False:
             text, ok = QInputDialog.getText(self, 'Password', dialog_text)
             if ok:
@@ -232,9 +233,14 @@ class ISDetection(QDialog):
             if download_image_pass == passwrd:
                 image_pass_correct = True
         
+        self.logFill.setText("Downloading images")
+        
+        #Pick the date of the table to be downloaded
         date = self.date_picker()
         table_name = "s_" + date
         suffix3 = ".jpg"
+
+        #Check if table exists
         check_query = "show tables"
         cursor.execute(check_query)
         table_list = []
@@ -244,7 +250,10 @@ class ISDetection(QDialog):
             
         if table_name not in table_list:
             self.logDownloaded.setText('Images not found!\n')
+
+        #Downloading images
         else: 
+            #Getting data from database
             download_image_query = ("""SELECT photo FROM {}""").format(table_name)
             cursor.execute(download_image_query)
 
@@ -258,6 +267,7 @@ class ISDetection(QDialog):
                 StoreFilePath_o = "data/image_files_from_database/" + table_name + "_" + str(count)
                 StoreFilePath = StoreFilePath_o + suffix3
 
+                #Create a new file if file with same name exists when downloading
                 if os.path.isfile(StoreFilePath_o+suffix3) == True:
                     number = 1
                 
@@ -276,6 +286,7 @@ class ISDetection(QDialog):
                 else:
                     StoreFilePath = StoreFilePath_o + suffix3
 
+                #Downloads the imagaes
                 with open(StoreFilePath, "wb") as Fil:
                     Fil.write(myd1)
 
@@ -284,38 +295,35 @@ class ISDetection(QDialog):
     
     #Date picker to pick the date of the dataset to be downloaded
     def date_picker(self):
+
+        #Returns picked date
         def date_method():
             # getting the date
             value = date.date()
             value = value.toString('yyyyMMdd')
             return value   
 
+        #Creating date picker window frame
         dlg = QDialog(self)
-        dlg.setWindowTitle("HELLO!")
-
-        # QBtn = QDialogButtonBox.Ok | QDialogButtonBox.Cancel
-
-        # dlg.buttonBox = QDialogButtonBox(QBtn)
-        # dlg.buttonBox.accepted.connect(dlg.accept)
-        # dlg.buttonBox.rejected.connect(dlg.reject)
-
+        dlg.setWindowTitle("Date Pick")
         dlg.layout = QVBoxLayout()
         message = QLabel("Pick a date: ")
-        dlg.layout.addWidget(message)
-        # dlg.layout.addWidget(dlg.buttonBox)
-        
+        dlg.layout.addWidget(message)        
         dlg.setLayout(dlg.layout)
-        
         date = QtWidgets.QDateEdit(dlg, calendarPopup = True)
- 
-        # setting geometry of the date edit
         date.setGeometry(100, 100, 150, 40)
+
+        #Setting default time to current day
         date.setDateTime(QtCore.QDateTime.currentDateTime())
 
+        #Formatting date
         date.setDisplayFormat("dd MMM yyyy")
+
+        #Showing date picker window frame
         dlg.layout.addWidget(date)
         date.show()
-
         dlg.exec()
+
+        #Returns picked date
         val = date_method()
         return val

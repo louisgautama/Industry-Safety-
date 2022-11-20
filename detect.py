@@ -41,7 +41,6 @@ from ui_code import *
 from datetime import datetime
 import mysql.connector
 import os.path
-
 from PyQt5.QtWidgets import QApplication
 
 #Creating variables
@@ -176,7 +175,7 @@ def run(weights=ROOT / 'yolov5s.pt',  # model.pt path(s)
                 FilePath_o = "data/images/" + date_str + "_" + str(counting)
                 suffix = ".jpg"
                 
-                # Create another file if file with the same name exists
+                #Create a new file when file with same name exists
                 if os.path.isfile(FilePath_o+suffix) == True:
                     number = 1
                 
@@ -218,9 +217,6 @@ def run(weights=ROOT / 'yolov5s.pt',  # model.pt path(s)
 
                 # Commit final output into database
                 db.commit()
-
-                # #Print log if recorded into database
-                # print(cursor.rowcount, "record inserted")
 
                 #Starts to detect equipment
                 if len(det):
@@ -305,7 +301,7 @@ def run(weights=ROOT / 'yolov5s.pt',  # model.pt path(s)
                     window.displayImage(im0, 2)
                     cv2.waitKey(1)  # 1 millisecond
 
-                # Save results (image with detections). Uncomment to save video results in runs/detect
+                # Save results (image with detections). Uncomment to save video results in runs/detect folder
                 # if save_img:
                 #     if dataset.mode == 'image':
                 #         cv2.imwrite(save_path, im0)
