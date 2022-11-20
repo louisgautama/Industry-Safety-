@@ -163,12 +163,11 @@ def run(weights=ROOT / 'yolov5s.pt',  # model.pt path(s)
             imc = im0.copy() if save_crop else im0  # for save_crop
             annotator = Annotator(im0, line_width=line_thickness, example=str(names))
             
-            ## Saving detected image frame when face is detected
             faceCascade = cv2.CascadeClassifier(haarcascade)
             img_gray = cv2.cvtColor(im0,cv2.COLOR_BGR2GRAY)
             faces = faceCascade.detectMultiScale(img_gray, 1.1, 4)
             
-            #Stars detecting equipments if face is detected
+            #Starts detecting equipments if face is detected
             if len(faces) != 0:
                 global counting
                 counting += 1
@@ -205,22 +204,22 @@ def run(weights=ROOT / 'yolov5s.pt',  # model.pt path(s)
                 #Defining cursor
                 cursor = db.cursor()
 
-                # Defining the database Query
+                #Defining the database Query
                 query = ("""INSERT INTO `"""+ "s_" + date_str + """`(photo, time, helmet, goggles, jacket, gloves, footwear) VALUES (%s, %s, %s, %s, %s, %s, %s);""")
 
-                # Storing values in a variable
+                #Storing values in a variable
                 global helmet, goggles, jacket, gloves, footwear
                 values = (photo, date_str, helmet, goggles, jacket, gloves, footwear)
 
-                # Executing the query with values
+                #Executing the query with values
                 cursor.execute(query, values)
 
-                # Commit final output into database
+                #Commit final output into database
                 db.commit()
 
                 #Starts to detect equipment
                 if len(det):
-                    # Rescale boxes from img_size to im0 size
+                    #Rescale boxes from img_size to im0 size
                     det[:, :4] = scale_coords(im.shape[2:], det[:, :4], im0.shape).round()
 
                     # Print results
@@ -242,25 +241,20 @@ def run(weights=ROOT / 'yolov5s.pt',  # model.pt path(s)
                             label = None if hide_labels else (names[c] if hide_conf else f'{names[c]} {conf:.2f}') 
                             annotator.box_label(xyxy, label, color=colors(c, True))
 
-                            # Inputting the detection confidence level into the variables
+                            #Inputting the detection confidence level into the variables
                             if names[c] == "Helmet":
-                                # global helmet
                                 helmet = (f'{conf:.2f}')
                                 window.Helmet.setChecked(True)
                             if names[c] == "Goggles":
-                                # global goggles
                                 goggles = (f'{conf:.2f}')
                                 window.Goggles.setChecked(True)
                             if names[c] == "Jacket":
-                                # global jacket 
                                 jacket = (f'{conf:.2f}')
                                 window.Jacket.setChecked(True)
                             if names[c] == "Gloves":
-                                # global gloves 
                                 gloves = (f'{conf:.2f}')
                                 window.Gloves.setChecked(True)
                             if names[c] == "Footwear":
-                                # global footwear
                                 footwear = (f'{conf:.2f}')
                                 window.Footwear.setChecked(True)
 
@@ -294,7 +288,7 @@ def run(weights=ROOT / 'yolov5s.pt',  # model.pt path(s)
                     #Resetting equipment variables
                     helmet, goggles, jacket, gloves, footwear = "0", "0", "0", "0", "0"
                  
-                # Stream results
+                #Stream results
                 window.logFill.setText("Detecting...")
                 im0 = annotator.result()
                 if view_img:
@@ -334,7 +328,7 @@ def run(weights=ROOT / 'yolov5s.pt',  # model.pt path(s)
                 cv2.waitKey(1)  # 1 millisecond
             LOGGER.info(f'{s}Done. ({t3 - t2:.3f}s)\n')
 
-    # Print results
+    #Print results
     t = tuple(x / seen * 1E3 for x in dt)  # speeds per image
     LOGGER.info(f'Speed: %.1fms pre-process, %.1fms inference, %.1fms NMS per image at shape {(1, 3, *imgsz)}' % t)
     if save_txt or save_img:
