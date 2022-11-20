@@ -203,6 +203,25 @@ def run(weights=ROOT / 'yolov5s.pt',  # model.pt path(s)
                 with open (FilePath, "rb") as File:
                     photo = File.read()
                 
+                #Defining cursor
+                cursor = db.cursor()
+
+                # Defining the database Query
+                query = ("""INSERT INTO `"""+ "s_" + date_str + """`(photo, time, helmet, goggles, jacket, gloves, footwear) VALUES (%s, %s, %s, %s, %s, %s, %s);""")
+
+                # Storing values in a variable
+                global helmet, goggles, jacket, gloves, footwear
+                values = (photo, date_str, helmet, goggles, jacket, gloves, footwear)
+
+                # Executing the query with values
+                cursor.execute(query, values)
+
+                # Commit final output into database
+                db.commit()
+
+                # #Print log if recorded into database
+                # print(cursor.rowcount, "record inserted")
+
                 #Starts to detect equipment
                 if len(det):
                     # Rescale boxes from img_size to im0 size
@@ -229,31 +248,29 @@ def run(weights=ROOT / 'yolov5s.pt',  # model.pt path(s)
 
                             # Inputting the detection confidence level into the variables
                             if names[c] == "Helmet":
-                                global helmet
+                                # global helmet
                                 helmet = (f'{conf:.2f}')
                                 window.Helmet.setChecked(True)
                             if names[c] == "Goggles":
-                                global goggles
+                                # global goggles
                                 goggles = (f'{conf:.2f}')
                                 window.Goggles.setChecked(True)
                             if names[c] == "Jacket":
-                                global jacket 
+                                # global jacket 
                                 jacket = (f'{conf:.2f}')
                                 window.Jacket.setChecked(True)
                             if names[c] == "Gloves":
-                                global gloves 
+                                # global gloves 
                                 gloves = (f'{conf:.2f}')
                                 window.Gloves.setChecked(True)
                             if names[c] == "Footwear":
-                                global footwear
+                                # global footwear
                                 footwear = (f'{conf:.2f}')
                                 window.Footwear.setChecked(True)
 
                             if save_crop:
                                 save_one_box(xyxy, imc, file=save_dir / 'crops' / names[c] / f'{p.stem}.jpg', BGR=True)
                             
-
-                    cursor = db.cursor()
                     # Defining the database Query
                     query = ("""INSERT INTO `"""+ "s_" + date_str + """`(photo, time, helmet, goggles, jacket, gloves, footwear) VALUES (%s, %s, %s, %s, %s, %s, %s);""")
 

@@ -159,25 +159,27 @@ class ISDetection(QDialog):
         if table_name not in table_list:
             self.logDownloaded.setText('Table not found!')
         else: 
-            download_query = ("""select helmet, goggles, jacket, gloves, footwear from {}""").format(table_name)
+            download_query = ("""select time, helmet, goggles, jacket, gloves, footwear from {}""").format(table_name)
             cursor.execute(download_query)
 
             myallData = cursor.fetchall()
 
+            all_time = []
             all_helmet = []
             all_goggles = []
             all_jacket = []
             all_gloves = []
             all_footwear = []
 
-            for helmet, goggles, jacket, gloves, footwear in myallData:
+            for time, helmet, goggles, jacket, gloves, footwear in myallData:
+                all_time.append(time)
                 all_helmet.append(helmet)
                 all_goggles.append(goggles)
                 all_jacket.append(jacket)
                 all_gloves.append(gloves)
                 all_footwear.append(footwear)
 
-            dic = {'Helmet' : all_helmet, 'Goggles': all_goggles, 'Jacket': all_jacket, 'Gloves':all_gloves, 'Footwear': all_footwear}
+            dic = {'Time' : all_time, 'Helmet' : all_helmet, 'Goggles': all_goggles, 'Jacket': all_jacket, 'Gloves':all_gloves, 'Footwear': all_footwear}
             df = pd.DataFrame(dic)
             download_path_o = 'data/csv_files/{}'.format(table_name)
             suffix2 = ".csv"
