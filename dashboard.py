@@ -97,6 +97,9 @@ def dash():
         
         #Showing graph
         plt.legend()
+        plt.title("Detection Performance Graph")
+        plt.xlabel("Date of Detection")
+        plt.ylabel("Accuracy")
         plt.show()
 
 #Calling function
